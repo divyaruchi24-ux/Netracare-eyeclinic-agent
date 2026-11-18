@@ -16,8 +16,8 @@ dist/
 .coverage
 htmlcov/
 
-# Data
-data/
+# Data (runtime only; repo-root data/, NOT seed/data/)
+/data/
 *.db
 *.db-journal
 *.db-wal

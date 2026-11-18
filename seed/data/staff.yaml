@@ -1,0 +1,6 @@
+# Non-doctor staff accounts. Doctor user accounts are created from doctors.yaml.
+# Passwords come from SEED_DEFAULT_PASSWORD (dev only).
+staff:
+  - {email: admin@netracare.example, display_name: Clinic Admin, role: admin}
+  - {email: frontdesk1@netracare.example, display_name: Priya (Front Desk), role: front_desk}
+  - {email: frontdesk2@netracare.example, display_name: Rahul (Front Desk), role: front_desk}

@@ -1,0 +1,17 @@
+# Fictional clinic specialties. `code` is stable and referenced by doctors.yaml and the router.
+specialties:
+  - code: CORNEA
+    name: Cornea & Refractive Surgery
+    description: LASIK/SMILE assessment, keratoconus, dry eye, corneal infections, contact-lens problems.
+  - code: RETINA
+    name: Retina & Vitreous
+    description: Diabetic eye screening, floaters and flashes, retinal detachment follow-up, macular conditions.
+  - code: GLAUCOMA
+    name: Glaucoma
+    description: Glaucoma screening, eye-pressure follow-ups, family history of glaucoma, optic nerve evaluation.
+  - code: PEDIATRIC
+    name: Pediatric Ophthalmology & Strabismus
+    description: Children's eye exams, squint (strabismus), lazy eye (amblyopia), school vision screening.
+  - code: GENERAL
+    name: Cataract, General Ophthalmology & Oculoplasty
+    description: Cataract evaluation and surgery, routine eye check-ups, eyelid and tear-duct concerns. Default for unclear concerns.

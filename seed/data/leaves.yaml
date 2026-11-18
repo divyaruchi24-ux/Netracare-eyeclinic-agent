@@ -1,0 +1,6 @@
+# Doctor leaves, as day offsets from the seed date (so demo data always has upcoming leave).
+# start/end are clinic-local times; omitted times mean the whole day(s).
+leaves:
+  - {doctor: D2, start_offset_days: 10, end_offset_days: 12, reason: Conference}
+  - {doctor: D4, start_offset_days: 20, end_offset_days: 20, start_time: "14:00", end_time: "18:00", reason: Half-day leave}
+  - {doctor: D1, start_offset_days: 30, end_offset_days: 34, reason: Annual leave}

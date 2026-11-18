@@ -1,0 +1,59 @@
+# Fictional doctors. Weekly blocks are clinic-local (Asia/Kolkata). weekday: 0=Mon ... 5=Sat.
+# Lunch (13:00-14:00) and Sundays are excluded automatically by slot generation.
+doctors:
+  - code: D1
+    full_name: Dr. Ananya Rao
+    specialty: CORNEA
+    bio_slug: dr-ananya-rao
+    email: ananya.rao@netracare.example
+    # Wednesday is a surgery day (no OPD)
+    blocks:
+      - {weekday: 0, start: "09:00", end: "18:00"}
+      - {weekday: 1, start: "09:00", end: "18:00"}
+      - {weekday: 3, start: "09:00", end: "18:00"}
+      - {weekday: 4, start: "09:00", end: "18:00"}
+      - {weekday: 5, start: "09:00", end: "13:00"}
+  - code: D2
+    full_name: Dr. Vikram Shetty
+    specialty: RETINA
+    bio_slug: dr-vikram-shetty
+    email: vikram.shetty@netracare.example
+    blocks:
+      - {weekday: 0, start: "09:00", end: "13:00"}
+      - {weekday: 1, start: "09:00", end: "18:00"}
+      - {weekday: 2, start: "09:00", end: "13:00"}
+      - {weekday: 3, start: "09:00", end: "18:00"}
+      - {weekday: 4, start: "09:00", end: "13:00"}
+      - {weekday: 5, start: "09:00", end: "13:00"}
+  - code: D3
+    full_name: Dr. Meera Iyer
+    specialty: GLAUCOMA
+    bio_slug: dr-meera-iyer
+    email: meera.iyer@netracare.example
+    blocks:
+      - {weekday: 0, start: "09:00", end: "18:00"}
+      - {weekday: 2, start: "09:00", end: "18:00"}
+      - {weekday: 4, start: "09:00", end: "18:00"}
+      - {weekday: 5, start: "09:00", end: "13:00"}
+  - code: D4
+    full_name: Dr. Arjun Menon
+    specialty: PEDIATRIC
+    bio_slug: dr-arjun-menon
+    email: arjun.menon@netracare.example
+    blocks:
+      - {weekday: 1, start: "09:00", end: "17:00"}
+      - {weekday: 2, start: "09:00", end: "17:00"}
+      - {weekday: 3, start: "09:00", end: "17:00"}
+      - {weekday: 5, start: "09:00", end: "13:00"}
+  - code: D5
+    full_name: Dr. Kavya Nair
+    specialty: GENERAL
+    bio_slug: dr-kavya-nair
+    email: kavya.nair@netracare.example
+    # Thursday is a surgery day (no OPD)
+    blocks:
+      - {weekday: 0, start: "09:00", end: "18:00"}
+      - {weekday: 1, start: "09:00", end: "18:00"}
+      - {weekday: 2, start: "09:00", end: "18:00"}
+      - {weekday: 4, start: "09:00", end: "18:00"}
+      - {weekday: 5, start: "09:00", end: "18:00"}

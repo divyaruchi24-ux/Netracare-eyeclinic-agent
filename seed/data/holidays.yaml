@@ -1,0 +1,11 @@
+# Clinic closed on these dates (clinic-local). Fictional clinic calendar.
+holidays:
+  - {date: 2026-11-01, name: Kannada Rajyotsava}
+  - {date: 2026-12-25, name: Christmas}
+  - {date: 2027-01-01, name: New Year's Day}
+  - {date: 2027-01-15, name: Makar Sankranti}
+  - {date: 2027-01-26, name: Republic Day}
+  - {date: 2027-03-22, name: Holi}
+  - {date: 2027-08-15, name: Independence Day}
+  - {date: 2027-10-02, name: Gandhi Jayanti}
+  - {date: 2027-10-29, name: Diwali}
