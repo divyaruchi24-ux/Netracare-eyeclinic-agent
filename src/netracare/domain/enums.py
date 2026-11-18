@@ -105,3 +105,16 @@ class NotificationStatus(StrEnum):
     QUEUED = "queued"
     SENT = "sent"
     FAILED = "failed"
+
+
+class ApprovalKind(StrEnum):
+    NEW_BOOKING = "new_booking"
+    RESCHEDULE = "reschedule"
+    CANCEL = "cancel"
+
+
+class ApprovalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    WITHDRAWN = "withdrawn"

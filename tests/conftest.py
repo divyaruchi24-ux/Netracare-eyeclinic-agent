@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import os
+
+# Tests never talk to Opik (the developer's .env may hold a real key).
+os.environ["OPIK_ENABLED"] = "false"
+os.environ["OPIK_TRACK_DISABLE"] = "true"
+
 from collections.abc import Iterator
 from pathlib import Path
 

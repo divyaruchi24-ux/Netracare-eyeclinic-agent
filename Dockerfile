@@ -14,10 +14,12 @@ COPY pyproject.toml README.md alembic.ini ./
 COPY src ./src
 COPY seed ./seed
 COPY kb ./kb
+COPY evals ./evals
+COPY .streamlit ./.streamlit
 RUN pip install --no-deps .
 
 RUN useradd --create-home --uid 10001 netracare && mkdir -p /app/data && chown -R netracare /app/data
 USER netracare
 
-EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn netracare.api.main:app --host 0.0.0.0 --port 8000"]
+EXPOSE 8000 8501
+CMD ["sh", "-c", "alembic upgrade head && uvicorn --factory netracare.api.main:app_factory --host 0.0.0.0 --port 8000"]

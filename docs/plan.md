@@ -68,7 +68,7 @@ flowchart LR
 | 2 | First LLM features | Eye-fact banner, visit-summary drafts, red-flag classifier, prompt registry, LLM wrapper | LLM wrapper with retries/timeouts/cost logging; structured outputs validated; emergency path alerts front desk; unit tests with mocked LLM; Groq smoke test script |
 | 3 | Patient chat with RAG | KB ingestion, hybrid retrieval, cited answers, intent router, specialist routing | Retrieval tests (recall@k on a small seed set); low-confidence → handoff; citations resolve to chunks; latest effective-date wins on conflicts |
 | 4 | Booking agent (LangGraph) | Agent with tools, HITL interrupts, checkpointing | Agent never writes without explicit "yes"; HITL approve/edit/reject from front-desk UI; conversation survives restart; tool failure → no partial writes |
-| 5 | Evals & LLMOps (Opik) | Golden datasets, metrics, LLM-as-judge, CI gate | Datasets at required sizes; medical-advice-leak = 0; emergency recall ≈100%; CI gate fails on regression; experiments comparable in Opik |
+| 5 | Evals & LLMOps (Opik) | Golden datasets, metrics, LLM-as-judge, CI gate (extends the tracing, eval harness and offline gate built in Phase 1) | Datasets at required sizes; medical-advice-leak = 0; emergency recall ≈100%; CI gate fails on regression; experiments comparable in Opik |
 | 6 | MCP & Agent Skills | Clinic MCP server, lab mock MCP, MCP client, 4 skills | MCP tools scoped per role; agent uses MCP client; lab results never interpreted (eval cases); skills load & run |
 | 7 | Hardening & polish | Selected improvements, security review, load test, README, deploy | Security checklist done; load-test report; README with diagrams; demo script; Render config |
 

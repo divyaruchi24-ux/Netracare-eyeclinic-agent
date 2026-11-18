@@ -1,0 +1,10 @@
+{
+  "suite": "booking_policy",
+  "dataset_version": "18b0af9056e4",
+  "n_cases": 40,
+  "metrics": {
+    "set_reasons": 1.0,
+    "exact_auto_confirm": 1.0
+  },
+  "git_sha": "6fc8e80"
+}

@@ -30,3 +30,6 @@ chroma/
 Thumbs.db
 .idea/
 .vscode/
+
+# Eval run reports (baselines live in evals/baselines and ARE committed)
+/reports/

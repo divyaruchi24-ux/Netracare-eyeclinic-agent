@@ -1,4 +1,4 @@
-.PHONY: install lint fmt type test check migrate seed api requirements
+.PHONY: install lint fmt type test check migrate seed api ui evals evals-upload requirements
 
 install:
 	uv sync
@@ -26,7 +26,16 @@ seed:
 	uv run python -m netracare.seed --summary
 
 api:
-	uv run uvicorn netracare.api.main:app --reload --port 8000
+	uv run uvicorn --factory netracare.api.main:app_factory --reload --port 8000
+
+ui:
+	uv run streamlit run src/netracare/ui/app.py --server.port 8501
+
+evals:
+	uv run python -m netracare.evals run all --fail-under
+
+evals-upload:
+	uv run python -m netracare.evals run booking_policy --upload --fail-under
 
 requirements:
 	uv export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt

@@ -9,7 +9,16 @@ Each phase links to its detailed `task.md`. A phase box is ticked only when all 
   - [x] Seed data + fictional KB stubs
   - [x] Safety policy
   - [x] Tests (107 passing, 97% cov), [RETRO](phase-0/RETRO.md), commit `phase-0: ...`
-- [ ] **Phase 1 — Clinic website** → phase-1/task.md *(created at phase start)*
+- [x] **Phase 1 — Clinic website** → [phase-1/task.md](phase-1/task.md)
+  - [x] Planning docs written
+  - [x] Planning docs approved
+  - [x] Foundations, migration 0002, auth
+  - [x] Access policy, directory, scheduling, availability
+  - [x] Booking core + race/idempotency tests, approvals
+  - [x] Front desk, doctor, admin, permission matrix
+  - [x] Streamlit dashboards
+  - [x] Opik tracing + eval harness + CI eval gate (foundation; full suite in Phase 5)
+  - [x] Tests, RETRO, commit `phase-1: ...`
 - [ ] **Phase 2 — First LLM features** → phase-2/task.md
 - [ ] **Phase 3 — Patient chat with RAG** → phase-3/task.md
 - [ ] **Phase 4 — Booking agent (LangGraph)** → phase-4/task.md

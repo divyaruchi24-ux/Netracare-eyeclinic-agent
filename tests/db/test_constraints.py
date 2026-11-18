@@ -72,3 +72,61 @@ def test_optimistic_version_increments(session: Session) -> None:
     a.reason_text = "changed"
     session.flush()
     assert session.get(Appointment, a.id).version == 2  # type: ignore[union-attr]
+
+
+def _approval(session: Session, appointment_id: str, user_id: str, status: str) -> None:
+    from netracare.db.models import ApprovalRequest
+    from netracare.domain.enums import ApprovalKind, ApprovalStatus
+
+    session.add(
+        ApprovalRequest(
+            kind=ApprovalKind.CANCEL,
+            appointment_id=appointment_id,
+            requested_by_user_id=user_id,
+            status=ApprovalStatus(status),
+            reasons=["within_24h_change"],
+        )
+    )
+    session.flush()
+
+
+def test_one_pending_approval_per_appointment(session: Session) -> None:
+    from netracare.db.models import User
+    from netracare.domain.enums import Role
+
+    doc = make_doctor(session)
+    appt = make_appointment(session, make_patient(session), doc, make_slot(session, doc))
+    user = User(email="u@example.com", password_hash="x", role=Role.PATIENT)
+    session.add(user)
+    session.flush()
+    _approval(session, appt.id, user.id, "rejected")
+    _approval(session, appt.id, user.id, "pending")  # a decided one doesn't block
+    with pytest.raises(IntegrityError):
+        _approval(session, appt.id, user.id, "pending")
+
+
+def test_idempotency_key_unique_per_user(session: Session) -> None:
+    from netracare.db.models import IdempotencyRecord, User
+    from netracare.domain.enums import Role
+
+    u1 = User(email="a@example.com", password_hash="x", role=Role.PATIENT)
+    u2 = User(email="b@example.com", password_hash="x", role=Role.PATIENT)
+    session.add_all([u1, u2])
+    session.flush()
+
+    def rec(user_id: str) -> IdempotencyRecord:
+        return IdempotencyRecord(
+            user_id=user_id,
+            key="k-123456",
+            method="POST",
+            path="/appointments",
+            request_hash="h",
+            status_code=201,
+            response_json={},
+        )
+
+    session.add_all([rec(u1.id), rec(u2.id)])
+    session.flush()  # same key for different users is fine
+    session.add(rec(u1.id))
+    with pytest.raises(IntegrityError):
+        session.flush()

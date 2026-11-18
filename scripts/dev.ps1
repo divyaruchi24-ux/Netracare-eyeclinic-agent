@@ -26,12 +26,15 @@ switch ($Task) {
     "migrate" { Uv run alembic upgrade head }
     "seed" { Uv run python -m netracare.seed --summary }
     "reseed" { Uv run python -m netracare.seed --reset --summary }
-    "api" { Uv run uvicorn netracare.api.main:app --reload --port 8000 }
+    "api" { Uv run uvicorn --factory netracare.api.main:app_factory --reload --port 8000 }
+    "ui" { Uv run streamlit run src/netracare/ui/app.py --server.port 8501 }
+    "evals" { Uv run python -m netracare.evals run all --fail-under }
+    "evals-upload" { Uv run python -m netracare.evals run booking_policy --upload --fail-under }
     "requirements" {
         Uv export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
         Uv export --only-group dev --no-hashes --no-emit-project --format requirements-txt -o requirements-dev.txt
     }
     default {
-        Write-Host "Tasks: install lint fmt type test check migrate seed reseed api requirements"
+        Write-Host "Tasks: install lint fmt type test check migrate seed reseed api ui evals evals-upload requirements"
     }
 }

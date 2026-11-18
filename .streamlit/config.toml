@@ -1,0 +1,11 @@
+[theme]
+base = "light"
+primaryColor = "#0F6E8C"
+baseFontSize = 16
+showWidgetBorder = true
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+headless = true

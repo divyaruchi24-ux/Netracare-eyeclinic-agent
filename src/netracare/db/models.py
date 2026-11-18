@@ -27,6 +27,8 @@ from netracare.domain.enums import (
     ActorType,
     AppointmentStatus,
     AppointmentType,
+    ApprovalKind,
+    ApprovalStatus,
     DocType,
     NotificationChannel,
     NotificationStatus,
@@ -276,3 +278,72 @@ class NotificationOutbox(IdMixin, Base):
     )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
     sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+
+
+class RefreshToken(IdMixin, Base):
+    """Opaque refresh token (only the sha256 hash is stored). Rotated on every use."""
+
+    __tablename__ = "refresh_tokens"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    family_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    replaced_by_id: Mapped[str | None] = mapped_column(String(36))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(String(255))
+
+
+class ApprovalRequest(IdMixin, TimestampMixin, Base):
+    """Human-in-the-loop queue: bookings/changes that need front-desk approval.
+
+    `appointment_id` is the appointment the request is about (the new booking, or the
+    existing appointment being rescheduled/cancelled). For reschedules, the proposed new
+    appointment is `target_appointment_id`. At most one pending request per appointment.
+    """
+
+    __tablename__ = "approval_requests"
+
+    kind: Mapped[ApprovalKind] = mapped_column(_enum(ApprovalKind, "approval_kind"), nullable=False)
+    appointment_id: Mapped[str] = mapped_column(ForeignKey("appointments.id"), nullable=False)
+    target_appointment_id: Mapped[str | None] = mapped_column(ForeignKey("appointments.id"))
+    reasons: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    status: Mapped[ApprovalStatus] = mapped_column(
+        _enum(ApprovalStatus, "approval_status"), default=ApprovalStatus.PENDING, nullable=False
+    )
+    requested_by_user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    decided_by_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    decided_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    decision_note: Mapped[str | None] = mapped_column(Text)
+    request_note: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
+    __table_args__ = (
+        Index("ix_approval_requests_status_created", "status", "created_at"),
+        Index(
+            "uq_one_pending_per_appointment",
+            "appointment_id",
+            unique=True,
+            sqlite_where=text("status = 'pending'"),
+            postgresql_where=text("status = 'pending'"),
+        ),
+    )
+
+
+class IdempotencyRecord(IdMixin, Base):
+    """Stored response for (user, Idempotency-Key) so retries replay instead of re-executing."""
+
+    __tablename__ = "idempotency_records"
+
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    method: Mapped[str] = mapped_column(String(8), nullable=False)
+    path: Mapped[str] = mapped_column(String(255), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False)
+    response_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "key"),)

@@ -30,6 +30,46 @@ jobs:
       - run: pip install --no-deps -e .
       - run: pytest
 
+  evals-offline:
+    # Deterministic evals: no secrets, fails the build on any regression vs evals/baselines.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run python -m netracare.evals run all --fail-under
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-reports
+          path: reports/evals/
+          if-no-files-found: ignore
+
+  evals-opik:
+    # Mirrors the experiment to Opik Cloud on main when the OPIK_API_KEY secret exists.
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: evals-offline
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      OPIK_API_KEY: ${{ secrets.OPIK_API_KEY }}
+      OPIK_WORKSPACE: ${{ secrets.OPIK_WORKSPACE }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.OPIK_API_KEY != ''
+      - uses: astral-sh/setup-uv@v6
+        if: env.OPIK_API_KEY != ''
+        with:
+          python-version: "3.13"
+      - if: env.OPIK_API_KEY != ''
+        run: uv sync --frozen
+      - if: env.OPIK_API_KEY != ''
+        run: uv run python -m netracare.evals run booking_policy --upload
+      - if: env.OPIK_API_KEY == ''
+        run: echo "OPIK_API_KEY secret not set - skipping Opik upload"
+
   docker-build:
     runs-on: ubuntu-latest
     steps:
