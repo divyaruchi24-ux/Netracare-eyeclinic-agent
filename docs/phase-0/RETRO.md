@@ -30,7 +30,8 @@
 | `python -m netracare.seed --summary`, run twice | second run: "nothing new" |
 | `uvicorn` + `GET /health` | `{"status":"ok","version":"0.1.0"}` |
 | Clean venv `pip install -r requirements.txt -r requirements-dev.txt` + pytest | 107 passed |
-| Docker build / compose up | **not run — Docker is not installed locally.** CI `docker-build` job will cover it once a GitHub remote exists. |
+| Docker build | ✅ green in GitHub Actions (`docker-build` job, run 44284554533). `docker compose up` not run locally (Docker not installed). |
+| GitHub Actions CI (all 3 jobs) | ✅ green on `main` — https://github.com/divyaruchi24-ux/Netracare-eyeclinic-agent |
 
 ## What worked
 - Checking dependency resolution early confirmed all the heavy Phase 2–6 deps (torch, chromadb, opik, langgraph, langchain-groq, mcp) resolve on Python 3.13, so no downgrade is needed.
@@ -38,6 +39,7 @@
 - Deterministic `uuid5` seed IDs made idempotency simple and testable.
 
 ## What broke / surprises
+- **`.gitignore` bug caught by CI:** the `data/` pattern also ignored `seed/data/`, so the seed YAML files were missing from the first commit. All local tests passed because the files existed on disk. The CI Docker build failed on `COPY seed`. Fixed by anchoring the pattern (`/data/`) in commit `96f5c7b`. Lesson: CI on a clean checkout catches what local runs can't.
 - **Redaction bug** (caught by a new test): the phone regex masked ISO dates (`2026-11-10` → `[PHONE]`). It now requires ≥10 digits and excludes date shapes. Phase 2 will extend redaction further, so this regression test matters.
 - SQLAlchemy 2.1 deprecates `Result.tuples()`; replaced with plain row unpacking.
 - Starlette deprecates `httpx` for its TestClient, so the dev dep was switched to `httpx2`.
@@ -46,8 +48,7 @@
 - `make` is unavailable on Windows; `scripts/dev.ps1` mirrors the Makefile.
 
 ## Carry-overs / next
-- Install Docker Desktop (optional, needed by Phase 7) and verify `docker compose up` + `--profile seed`.
-- Add a GitHub remote so CI runs.
+- Install Docker Desktop (optional, needed by Phase 7) and verify `docker compose up` + `--profile seed` locally.
 - Seeded leaves are relative to the seed date, so re-seeding on a later day adds new upcoming leaves. That's intended for demos; documented here.
 - `Settings` has a dev-only default `SEED_DEFAULT_PASSWORD`; Phase 1 must refuse to start with default secrets when `ENVIRONMENT != dev`.
 - Phase 1: auth/JWT/RBAC, booking services on top of the state machine + policies, the 4 Streamlit dashboards, and a concurrency test against the partial unique index.

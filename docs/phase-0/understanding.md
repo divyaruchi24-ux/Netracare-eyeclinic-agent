@@ -112,4 +112,6 @@ Append-only: `audit_logs(id, at_utc, actor_user_id|null, actor_type ∈ {user, a
 - **2026-11-11** — Dev dep `httpx` → `httpx2` (Starlette TestClient deprecation). Removed `.tuples()` (SQLAlchemy 2.1 deprecation).
 - **2026-11-11** — Seed tests use a module-scoped seeded DB (suite 193s → ~30s).
 - **2026-11-11** — Clean-install check done in a scratch venv outside the repo instead of `.venv-check/`.
-- **2026-11-18** — Docker verification deferred (Docker not installed); CI `docker-build` job covers it once a remote exists.
+- **2026-11-18** — Git identity (repo-local): `divyaruchi24-ux <divya.ruchi24@gmail.com>`. Branch renamed `master` → `main`. Added `.gitattributes` (LF everywhere, CRLF for `.ps1`).
+- **2026-11-18** — Public GitHub repo created: https://github.com/divyaruchi24-ux/Netracare-eyeclinic-agent (name uses hyphens; GitHub disallows spaces).
+- **2026-11-18** — Fixed over-broad `data/` gitignore that excluded `seed/data/`; CI (incl. Docker build) green afterwards. Local `docker compose up` still unverified.
