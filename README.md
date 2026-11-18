@@ -21,6 +21,10 @@ Demo logins use `SEED_DEFAULT_PASSWORD`: `admin@netracare.example`, `frontdesk1@
 
 **Opik:** to trace bookings and approvals (with no patient details), set `OPIK_API_KEY` and `OPIK_ENABLED=true`; `OPIK_WORKSPACE` is optional. Run `.\scripts\dev.ps1 evals-upload` to log an experiment. See [docs/evals.md](docs/evals.md).
 
+If ports 8000/8501 are taken, set `$env:API_PORT="8001"; $env:UI_PORT="8502"` before `api` / `ui`.
+
+Docker is **optional**. `docker compose up --build` works where Docker is available, and CI builds the image, but nothing requires it.
+
 On Linux/macOS use the equivalent `make` targets.
 
 Planning docs live in [docs/](docs/) (global and per-phase `understanding.md`, `plan.md`, `task.md`).

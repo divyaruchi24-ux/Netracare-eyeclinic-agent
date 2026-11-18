@@ -10,6 +10,10 @@ $ErrorActionPreference = "Stop"
 $env:UV_LINK_MODE = "copy"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
+# Override ports when 8000/8501 are taken by another app:  $env:API_PORT=8001; $env:UI_PORT=8502
+$ApiPort = if ($env:API_PORT) { $env:API_PORT } else { "8000" }
+$UiPort = if ($env:UI_PORT) { $env:UI_PORT } else { "8501" }
+
 function Uv { python -m uv @args; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE } }
 
 switch ($Task) {
@@ -26,8 +30,11 @@ switch ($Task) {
     "migrate" { Uv run alembic upgrade head }
     "seed" { Uv run python -m netracare.seed --summary }
     "reseed" { Uv run python -m netracare.seed --reset --summary }
-    "api" { Uv run uvicorn --factory netracare.api.main:app_factory --reload --port 8000 }
-    "ui" { Uv run streamlit run src/netracare/ui/app.py --server.port 8501 }
+    "api" { Uv run uvicorn --factory netracare.api.main:app_factory --reload --port $ApiPort }
+    "ui" {
+        if (-not $env:API_BASE_URL) { $env:API_BASE_URL = "http://localhost:$ApiPort" }
+        Uv run streamlit run src/netracare/ui/app.py --server.port $UiPort
+    }
     "evals" { Uv run python -m netracare.evals run all --fail-under }
     "evals-upload" { Uv run python -m netracare.evals run booking_policy --upload --fail-under }
     "requirements" {

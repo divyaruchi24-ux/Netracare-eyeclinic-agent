@@ -70,7 +70,7 @@ flowchart LR
 | 4 | Booking agent (LangGraph) | Agent with tools, HITL interrupts, checkpointing | Agent never writes without explicit "yes"; HITL approve/edit/reject from front-desk UI; conversation survives restart; tool failure → no partial writes |
 | 5 | Evals & LLMOps (Opik) | Golden datasets, metrics, LLM-as-judge, CI gate (extends the tracing, eval harness and offline gate built in Phase 1) | Datasets at required sizes; medical-advice-leak = 0; emergency recall ≈100%; CI gate fails on regression; experiments comparable in Opik |
 | 6 | MCP & Agent Skills | Clinic MCP server, lab mock MCP, MCP client, 4 skills | MCP tools scoped per role; agent uses MCP client; lab results never interpreted (eval cases); skills load & run |
-| 7 | Hardening & polish | Selected improvements, security review, load test, README, deploy | Security checklist done; load-test report; README with diagrams; demo script; Render config |
+| 7 | Hardening & polish | Selected improvements, security review, load test, README, deploy to **Render (native Python runtime, no Docker)** | Security checklist done; load-test report; README with diagrams; demo script; `render.yaml` blueprint with 2 Python web services (API: `uvicorn --factory netracare.api.main:app_factory`; UI: `streamlit run`), a persistent disk or Render Postgres for the DB, env vars and secrets set in the Render dashboard, and a pre-deploy `alembic upgrade head`. Live URLs smoke-tested. The Dockerfile stays optional and CI-built |
 
 ## Cross-cutting conventions
 - Package layout: `src/netracare/{api,services,repositories,domain,db,llm,rag,agents,guardrails,evals,mcp,skills,ui}`.

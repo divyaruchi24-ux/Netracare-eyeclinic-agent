@@ -59,7 +59,7 @@
 - **Your Opik key had been pasted into `.env.example`**, which is committed to the public repo. It was moved to the git-ignored `.env` before any commit.
 
 ## Carry-overs
-- `docker compose up` still can't be verified locally because Docker isn't installed. CI builds the image.
+- ~~Verify `docker compose up` locally~~ **Dropped on 2026-11-18 (user decision):** this laptop can't run Docker because firmware virtualization is off. Local runs use plain Python, CI still builds the image, and Phase 7 deploys on Render's native Python runtime.
 - The suite takes about 4 minutes, mostly scrypt logins and the seeded DB copy per test. Phase 7 could add a faster test password-hashing profile.
 - The front desk can register patients without an account but cannot yet edit patient details. That is planned for Phase 7.
 - `safety_redflags_v0` becomes a scored suite, with an emergency-recall gate, once Phase 2's classifier exists.

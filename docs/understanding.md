@@ -19,7 +19,7 @@ Portfolio-grade: clean architecture, tests, evals with hard safety gates, observ
 | # | Topic | Decision |
 |---|-------|----------|
 | 1 | Frontend | **Streamlit** (multi-page, role-aware) |
-| 2 | Deployment | **Local Docker Compose**; Render-ready config added in Phase 7 |
+| 2 | Deployment | **Local: plain Python via uv** (Docker optional). **Phase 7: Render native Python runtime** (no Docker). *Revised 2026-11-18, see Decisions Log.* |
 | 3 | LLM | **Groq** (OpenAI-compatible API). `GROQ_MODEL_REASONING=openai/gpt-oss-120b` (chat answers, booking agent, visit summaries), `GROQ_MODEL_FAST=openai/gpt-oss-20b` (router, red-flag classifier, eye-fact, guard checks). Provider stays swappable behind `LLMProvider` interface. Budget cap default **$20/month**, enforced via per-conversation + daily cost budgets. |
 | 3b | LLM-as-judge | `JUDGE_PROVIDER=groq`, `JUDGE_MODEL=qwen/qwen3.8-27b`, `JUDGE_REASONING_EFFORT=none`, `JUDGE_MAX_TOKENS=900` |
 | 4 | Embeddings | Local **sentence-transformers `BAAI/bge-small-en-v1.5`**; optional cross-encoder reranker (`cross-encoder/ms-marco-MiniLM-L-6-v2`) |
@@ -140,3 +140,8 @@ Rule: **agents → services → repositories → DB**. UI → API only. MCP tool
 - **2026-11-10** — Slot model: materialised slots from templates (8-week rolling window) + `AppointmentSlot` join with partial unique index for active bookings.
 - **2026-11-10** — Ship `Makefile` + `scripts/dev.ps1` because `make` is unavailable on the Windows dev box.
 - **2026-11-10** — `src/` layout with package `netracare`.
+- **2026-11-18** - **Docker is optional; the default is native Python** (user decision). This dev laptop has hardware virtualization turned off in firmware and no WSL 2, so Docker Desktop cannot install or run, and Podman or Rancher would hit the same limit.
+  - *Local:* run everything with uv/venv (`dev.ps1 api` / `ui`, ports configurable via `API_PORT` / `UI_PORT`).
+  - *CI:* the `docker-build` job stays, so the `Dockerfile` and `docker-compose.yml` keep working for anyone who has Docker.
+  - *Deployment (Phase 7):* Render's **native Python runtime**, which builds with `pip install -r requirements.txt` and starts uvicorn and Streamlit as two web services. A container is not required.
+  - Docker can be added later without code changes.
