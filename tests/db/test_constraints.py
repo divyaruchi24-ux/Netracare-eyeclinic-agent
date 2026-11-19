@@ -130,3 +130,25 @@ def test_idempotency_key_unique_per_user(session: Session) -> None:
     session.add(rec(u1.id))
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+def test_one_summary_per_appointment(session: Session) -> None:
+    from netracare.db.models import VisitSummary
+
+    doc = make_doctor(session)
+    appt = make_appointment(session, make_patient(session), doc, make_slot(session, doc))
+    session.add(VisitSummary(appointment_id=appt.id, doctor_id=doc.id, raw_notes="n"))
+    session.flush()
+    session.add(VisitSummary(appointment_id=appt.id, doctor_id=doc.id, raw_notes="m"))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def test_one_eye_fact_per_day(session: Session) -> None:
+    from netracare.db.models import EyeFact
+
+    session.add(EyeFact(day=T0.date(), topic="t", text="x", source="static"))
+    session.flush()
+    session.add(EyeFact(day=T0.date(), topic="t", text="y", source="static"))
+    with pytest.raises(IntegrityError):
+        session.flush()

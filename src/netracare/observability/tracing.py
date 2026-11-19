@@ -82,7 +82,17 @@ class TraceBackend(Protocol):
         self, name: str, *, tags: list[str], input: dict[str, Any], metadata: dict[str, Any]
     ) -> AbstractContextManager[SpanHandle]: ...
 
+    def llm_span(
+        self, name: str, *, tags: list[str], input: dict[str, Any], metadata: dict[str, Any]
+    ) -> AbstractContextManager[LLMSpanHandle]: ...
+
     def flush(self) -> None: ...
+
+
+class LLMSpanHandle(SpanHandle, Protocol):
+    def set_usage(
+        self, *, model: str, provider: str, usage: dict[str, int], total_cost: float
+    ) -> None: ...
 
 
 class _OpikHandle:
@@ -90,6 +100,13 @@ class _OpikHandle:
         import opik
 
         opik.update_current_span(output=output)
+
+    def set_usage(
+        self, *, model: str, provider: str, usage: dict[str, int], total_cost: float
+    ) -> None:
+        import opik
+
+        opik.update_current_span(model=model, provider=provider, usage=usage, total_cost=total_cost)
 
 
 @dataclass
@@ -115,6 +132,27 @@ class OpikBackend:
         self, name: str, *, tags: list[str], input: dict[str, Any], metadata: dict[str, Any]
     ) -> AbstractContextManager[SpanHandle]:
         return self._span(name, tags, input, metadata)
+
+    @contextmanager
+    def _llm_span(
+        self, name: str, tags: list[str], input: dict[str, Any], metadata: dict[str, Any]
+    ) -> Iterator[LLMSpanHandle]:
+        import opik
+
+        with opik.start_as_current_span(
+            name=name,
+            type="llm",
+            input=input,
+            tags=tags,
+            metadata=metadata,
+            project_name=self.project_name,
+        ):
+            yield _OpikHandle()
+
+    def llm_span(
+        self, name: str, *, tags: list[str], input: dict[str, Any], metadata: dict[str, Any]
+    ) -> AbstractContextManager[LLMSpanHandle]:
+        return self._llm_span(name, tags, input, metadata)
 
     def flush(self) -> None:
         import opik
@@ -236,3 +274,85 @@ def _close(
         cm.__exit__(None, None, None)
     except Exception as exc:
         log.warning("tracing.close_failed", error=type(exc).__name__)
+
+
+class _NullLLMSpan:
+    def set_output(self, output: dict[str, Any]) -> None:
+        return None
+
+    def set_usage(
+        self, *, model: str, provider: str, usage: dict[str, int], total_cost: float
+    ) -> None:
+        return None
+
+
+class LLMSpan:
+    """Handle yielded by `llm_span`. All methods are safe no-ops when tracing is off and
+    swallow backend errors; payloads go through `safe_payload`."""
+
+    def __init__(self, handle: LLMSpanHandle) -> None:
+        self._handle = handle
+
+    def set_usage(
+        self, *, model: str, provider: str, input_tokens: int, output_tokens: int, cost_usd: float
+    ) -> None:
+        try:
+            self._handle.set_usage(
+                model=model,
+                provider=provider,
+                usage={
+                    "prompt_tokens": input_tokens,
+                    "completion_tokens": output_tokens,
+                    "total_tokens": input_tokens + output_tokens,
+                },
+                total_cost=cost_usd,
+            )
+        except Exception as exc:
+            log.warning("tracing.usage_failed", error=type(exc).__name__)
+
+    def set_output(self, output: dict[str, Any]) -> None:
+        try:
+            self._handle.set_output(safe_payload(output))
+        except Exception as exc:
+            log.warning("tracing.output_failed", error=type(exc).__name__)
+
+
+@contextmanager
+def llm_span(
+    name: str, *, model: str, prompt: str, purpose: str, input: dict[str, Any] | None = None
+) -> Iterator[LLMSpan]:
+    """An Opik `type="llm"` span for one LLM call. `input` must be a *summary* (lengths, ids),
+    never prompt text; it is passed through `safe_payload` regardless."""
+    backend = _state.backend
+    if backend is None:
+        yield LLMSpan(_NullLLMSpan())
+        return
+    payload = safe_payload({"purpose": purpose, "prompt": prompt, **(input or {})})
+    metadata = safe_payload({**_base_metadata(), "model": model, "prompt": prompt})
+    try:
+        cm = backend.llm_span(
+            name, tags=["netracare", "llm", purpose], input=payload, metadata=metadata
+        )
+        handle = cm.__enter__()
+    except Exception as exc:
+        log.warning("tracing.span_failed", span=name, error=type(exc).__name__)
+        yield LLMSpan(_NullLLMSpan())
+        return
+    error: BaseException | None = None
+    try:
+        yield LLMSpan(handle)
+    except BaseException as exc:
+        error = exc
+        raise
+    finally:
+        if error is not None:
+            try:
+                handle.set_output(
+                    {"error": type(error).__name__, "code": getattr(error, "code", None)}
+                )
+            except Exception as exc:  # pragma: no cover - defensive
+                log.warning("tracing.output_failed", error=type(exc).__name__)
+        try:
+            cm.__exit__(None, None, None)
+        except Exception as exc:
+            log.warning("tracing.close_failed", error=type(exc).__name__)

@@ -28,8 +28,12 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--tolerance", type=float, default=0.0)
     run.add_argument("--upload", action="store_true", help="log an experiment to Opik")
     run.add_argument("--no-report", action="store_true")
+    run.add_argument(
+        "--live", action="store_true", help="also run suites that call a real LLM (Groq)"
+    )
     upd = sub.add_parser("update-baseline", help="re-run a suite and overwrite its baseline")
     upd.add_argument("suite")
+    upd.add_argument("--live", action="store_true")
     return p
 
 
@@ -40,13 +44,21 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "list":
         for name, suite in SUITES.items():
-            state = "scored" if suite.task else "schema-only"
+            state = "live" if suite.requires_live else "scored" if suite.task else "schema-only"
             print(f"{name:24} {state:12} {suite.description}")
         return 0
 
-    names = list(SUITES) if getattr(args, "suite", "") == "all" else [args.suite]
+    live = bool(getattr(args, "live", False))
+    if args.suite == "all":
+        names = [n for n, s in SUITES.items() if live or not s.requires_live]
+    else:
+        names = [args.suite]
     worst = 0
     for name in names:
+        selected = SUITES.get(name)
+        if selected is not None and selected.requires_live and not live:
+            print(f"{name}: skipped (calls a real LLM; re-run with --live)")
+            continue
         try:
             report = run_suite(
                 name,

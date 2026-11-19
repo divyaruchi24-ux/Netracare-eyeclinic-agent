@@ -71,3 +71,15 @@ ClinicianUserDep = Annotated[
     CurrentUser, Depends(require_roles(Role.DOCTOR, Role.FRONT_DESK, Role.ADMIN))
 ]
 PatientUserDep = Annotated[CurrentUser, Depends(require_roles(Role.PATIENT))]
+
+
+def optional_user(
+    creds: BearerCreds, db: DbSession, settings: SettingsDep, clock: ClockDep
+) -> CurrentUser | None:
+    """The caller if a bearer token is sent (it must be valid), else None (anonymous)."""
+    if creds is None:
+        return None
+    return current_user(creds, db, settings, clock)
+
+
+OptionalUserDep = Annotated[CurrentUser | None, Depends(optional_user)]

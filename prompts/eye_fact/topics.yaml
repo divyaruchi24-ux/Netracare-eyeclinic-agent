@@ -1,0 +1,24 @@
+# Approved, non-advice eye-fact topics (reviewed by clinic admin). One is picked per
+# clinic-local day by a stable hash of the date. `keywords`: at least one must appear in
+# the generated fact (on-topic check).
+topics:
+  - {id: cornea_no_vessels, title: "The cornea has no blood vessels", keywords: [cornea]}
+  - {id: pupil_size, title: "How the pupil changes size", keywords: [pupil]}
+  - {id: retina_role, title: "What the retina does", keywords: [retina]}
+  - {id: blind_spot, title: "Why the blind spot exists", keywords: [blind spot]}
+  - {id: tear_layers, title: "Tears have three layers", keywords: [tear, tears]}
+  - {id: rods_cones, title: "Rods and cones", keywords: [rods, cones]}
+  - {id: blinking, title: "Why we blink", keywords: [blink, blinking]}
+  - {id: iris_unique, title: "Every iris pattern is unique", keywords: [iris]}
+  - {id: lens_focus, title: "How the lens focuses light", keywords: [lens]}
+  - {id: optic_nerve, title: "The optic nerve carries signals to the brain", keywords: [optic nerve]}
+  - {id: upside_down_image, title: "The brain flips the image the eye captures", keywords: [upside down, image]}
+  - {id: eye_muscles, title: "Six muscles move each eye", keywords: [muscles]}
+  - {id: colour_vision, title: "How we see colour", keywords: [colour, color, cones]}
+  - {id: dark_adaptation, title: "Why eyes adjust to the dark", keywords: [dark]}
+  - {id: macula_fovea, title: "The fovea gives the sharpest vision", keywords: [fovea, macula]}
+  - {id: binocular_depth, title: "Two eyes help judge depth", keywords: [depth, two eyes]}
+  - {id: eye_movements, title: "Eyes move in quick jumps called saccades", keywords: [saccade, saccades]}
+  - {id: vitreous_gel, title: "The eye is filled with a clear gel", keywords: [vitreous, gel]}
+  - {id: sclera_white, title: "The white of the eye is the sclera", keywords: [sclera]}
+  - {id: eyelashes, title: "What eyelashes do", keywords: [eyelash, eyelashes]}

@@ -39,6 +39,7 @@ from netracare.domain.enums import (
     ApprovalKind,
     ApprovalReason,
     ApprovalStatus,
+    RedFlagLevel,
     Role,
     SlotStatus,
 )
@@ -57,6 +58,7 @@ from netracare.errors import (
     ValidationAppError,
     require,
 )
+from netracare.llm.client import LLMClient
 from netracare.observability.tracing import traced
 from netracare.repositories.appointment_repo import AppointmentRepository
 from netracare.services.access import AccessPolicy
@@ -135,9 +137,13 @@ def _result_outputs(r: BookingResult | CancelResult) -> dict[str, object]:
 
 
 class BookingService:
-    def __init__(self, session: Session, clock: Clock, settings: Settings) -> None:
+    def __init__(
+        self, session: Session, clock: Clock, settings: Settings, llm: LLMClient | None = None
+    ) -> None:
         self.s = session
         self.clock = clock
+        self.settings = settings
+        self.llm = llm
         self.tz = settings.tz
         self.access = AccessPolicy(session)
         self.appts = AppointmentRepository(session)
@@ -227,6 +233,7 @@ class BookingService:
         start: datetime,
         *,
         is_change: bool,
+        red_flag_level: RedFlagLevel | None = None,
     ) -> BookingContext:
         today = clinic_today(self.clock, self.tz)
         return BookingContext(
@@ -238,6 +245,7 @@ class BookingService:
             patient_is_minor=is_minor(patient.dob, today),
             booked_by_guardian=actor.role is Role.PATIENT and patient.user_id != actor.id,
             patient_no_show_flagged=patient.flagged,
+            red_flag_level=red_flag_level,
         )
 
     def _doctor(self, doctor_id: str) -> Doctor:
@@ -294,6 +302,38 @@ class BookingService:
             self.audit.record(actor, "approval.withdraw", "approval_request", req.id)
         self.s.flush()
 
+    def _triage_reason(
+        self, actor: CurrentUser, patient: Patient, reason: str | None
+    ) -> RedFlagLevel | None:
+        """Safety policy 5.1: an emergency in a patient's booking reason pauses the booking.
+
+        Patients: full triage (rules + LLM, alert for urgent/emergency). Emergency -> 409
+        `emergency_detected` with the verbatim script; the alert is kept (`commit=True`).
+        Staff: rules only, recorded on the appointment, never blocked (staff are the
+        escalation path).
+        """
+        if not reason or not reason.strip():
+            return None
+        from netracare.services.triage_service import TriageService
+
+        is_patient = actor.role is Role.PATIENT
+        triage = TriageService(self.s, self.clock, self.settings, self.llm if is_patient else None)
+        result = triage.classify(reason, actor=actor, patient_id=patient.id, raise_alert=is_patient)
+        if is_patient and result.level is RedFlagLevel.EMERGENCY:
+            raise ConflictError(
+                "emergency_detected",
+                "This could be an emergency. Please don't wait for an appointment.",
+                details={
+                    "message": result.message,
+                    "alert_id": result.alert_id,
+                    "codes": result.codes,
+                },
+                commit=True,
+            )
+        if result.level in (RedFlagLevel.EMERGENCY, RedFlagLevel.URGENT):
+            return result.level
+        return None
+
     # -- booking -----------------------------------------------------------------------------
     @traced("booking.book", tags=["booking"], inputs=_book_inputs, outputs=_result_outputs)
     def book(self, actor: CurrentUser, cmd: BookCommand) -> BookingResult:
@@ -304,13 +344,19 @@ class BookingService:
         if cmd.override and not (cmd.override_reason and cmd.override_reason.strip()):
             raise ValidationAppError("override_reason_required", "an override needs a reason")
         patient = self.access.assert_can_act_for_patient(actor, cmd.patient_id)
+        red_flag = self._triage_reason(actor, patient, cmd.reason)
         doctor = self._doctor(cmd.doctor_id)
         now = self.clock.now_utc()
         slots = self._load_slots(doctor.id, cmd.slot_ids, cmd.type, now)
         start, end = slots[0].start_utc, slots[-1].end_utc
         self._assert_no_duplicate(patient.id, doctor.id, start, end)
 
-        reasons = requires_approval(self._context(actor, patient, cmd.type, start, is_change=False))
+        # Staff bookings record the level but are not routed back to staff for approval.
+        ctx_flag = red_flag if actor.role is Role.PATIENT else None
+        ctx = self._context(
+            actor, patient, cmd.type, start, is_change=False, red_flag_level=ctx_flag
+        )
+        reasons = requires_approval(ctx)
         needs_approval = bool(reasons) and not cmd.override
         appt = Appointment(
             patient_id=patient.id,
@@ -323,6 +369,7 @@ class BookingService:
             booked_by_user_id=actor.id,
             idempotency_key=cmd.idempotency_key,
             approval_reasons=[r.value for r in reasons],
+            red_flag_level=red_flag,
         )
         event = (
             AppointmentEvent.SUBMIT_FOR_APPROVAL

@@ -22,6 +22,7 @@ from netracare.config import Settings
 from netracare.db.models import AppointmentSlot, AuditLog, Doctor, Patient, Slot
 from netracare.db.session import make_engine, make_session_factory
 from netracare.domain.enums import SlotStatus
+from netracare.llm.providers import DisabledProvider, FakeProvider
 from netracare.seed.ids import seed_id
 from netracare.seed.patients import make_patients
 from netracare.seed.runner import Seeder
@@ -121,7 +122,24 @@ def api_engine(api_db_url: str) -> Iterator[Engine]:
 
 @pytest.fixture
 def app(api_db_url: str, api_engine: Engine, clock: MutableClock) -> FastAPI:
-    return create_app(make_settings(api_db_url), clock=clock, engine=api_engine)
+    # LLM off by default (rules-only triage, static eye-fact); tests opt in via `use_llm`.
+    app = create_app(
+        make_settings(api_db_url), clock=clock, engine=api_engine, llm_provider=DisabledProvider()
+    )
+    app.state.llm_sleep = lambda _s: None
+    return app
+
+
+@pytest.fixture
+def use_llm(app: FastAPI) -> Callable[..., FakeProvider]:
+    """Install a scripted FakeProvider on the app: `fake = use_llm([resp(...), ...])`."""
+
+    def _install(script: Any = None) -> FakeProvider:
+        fake = FakeProvider(script)
+        app.state.llm_provider = fake
+        return fake
+
+    return _install
 
 
 @pytest.fixture

@@ -2,6 +2,7 @@ from typing import Any
 
 import streamlit as st
 
+from netracare.ui.api_client import ApiError
 from netracare.ui.components import (
     appointment_summary,
     call,
@@ -32,6 +33,24 @@ for a in shown:
             st.markdown(appointment_summary(a))
             status_badge(a["status"])
         st.caption(f"Patient: {a['patient']['name']}")
+        if a["status"] in ("completed", "checked_in"):
+            try:
+                summary = client.get(f"/appointments/{a['id']}/visit-summary")
+            except ApiError:
+                summary = None  # none approved yet
+            if summary and summary.get("final"):
+                final = summary["final"]
+                with st.expander("Visit summary", icon=":material/description:"):
+                    st.caption(summary["disclaimer"])
+                    if final.get("what_we_checked"):
+                        st.markdown("**What we checked:** " + "; ".join(final["what_we_checked"]))
+                    st.markdown(f"**What we found:** {final['what_we_found']}")
+                    for step in final.get("next_steps", []):
+                        st.markdown(f"- {step}")
+                    for med in final.get("medicines_mentioned", []):
+                        st.markdown(f"- **{med['name']}**: {med['instructions_verbatim']}")
+                    if final.get("follow_up"):
+                        st.markdown(f"**Follow-up:** {final['follow_up']}")
         approval = a.get("approval")
         if approval and approval["status"] == "pending":
             what = {"cancel": "cancellation", "reschedule": "move", "new_booking": "booking"}[

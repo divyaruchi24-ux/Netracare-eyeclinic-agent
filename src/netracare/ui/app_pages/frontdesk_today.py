@@ -11,6 +11,13 @@ q = call(client.get, "/front-desk/queue", date=day.isoformat())
 if not q:
     st.stop()
 
+alerts = call(client.get, "/triage/alerts", status="open", limit=1)
+if alerts and alerts["open_emergencies"]:
+    st.error(
+        f"{alerts['open_emergencies']} open emergency alert(s). See **Alerts** now.",
+        icon=":material/emergency:",
+    )
+
 counts = q["status_counts"]
 m = st.container(horizontal=True)
 with m:

@@ -81,6 +81,26 @@ def config_fingerprint(settings: Settings) -> str:
     return hashlib.sha256(blob).hexdigest()[:12]
 
 
+def prompt_versions(settings: Settings, suite: EvalSuite, root: Path = Path()) -> dict[str, str]:
+    """`{prompt_id: "v<N>@<hash12>"}` for the prompts a suite exercises (all, if unspecified)."""
+    from netracare.llm.prompts import PromptError, PromptRegistry
+
+    prompts_dir = Path(settings.prompts_dir)
+    if not prompts_dir.is_absolute():
+        prompts_dir = root / prompts_dir
+    try:
+        registry = PromptRegistry(prompts_dir).load()
+    except PromptError as exc:
+        log.warning("evals.prompts_unavailable", error=str(exc)[:200])
+        return {}
+    wanted = set(suite.prompts) if suite.prompts else None
+    return {
+        p.spec.id: f"v{p.spec.version}@{p.content_hash[:12]}"
+        for p in (registry.get(pid) for pid in registry.latest_versions())
+        if wanted is None or p.spec.id in wanted
+    }
+
+
 def score_cases(
     cases: tuple[EvalCase, ...], task: Task, metrics: list[Metric]
 ) -> tuple[list[CaseResult], dict[str, float], list[str]]:
@@ -131,7 +151,8 @@ def run_suite(
         "config_fingerprint": config_fingerprint(settings),
         "models": {"reasoning": settings.groq_model_reasoning, "fast": settings.groq_model_fast},
         "judge": {"provider": settings.judge_provider, "model": settings.judge_model},
-        "prompt_versions": {},  # populated once prompts exist (Phase 2)
+        "prompt_versions": prompt_versions(settings, suite, root),
+        "live": suite.requires_live,
     }
     if suite.task is None:
         report = ExperimentReport(
@@ -192,8 +213,14 @@ def upload_to_opik(
                     name=self.name, value=self._m.score(case, kwargs.get("output") or {})
                 )
 
+        # Re-use the outputs scored locally: the Opik experiment then matches the JSON report
+        # exactly, and live suites do not call (and pay for) the LLM a second time.
+        scored = {c.id: c.output for c in report.cases}
+
         def opik_task(item: dict[str, Any]) -> dict[str, Any]:
-            return {"output": task(item["input"]), "case_id": item["case_id"]}
+            case_id = item["case_id"]
+            output = scored[case_id] if case_id in scored else task(item["input"])
+            return {"output": output, "case_id": case_id}
 
         evaluate(
             dataset=ds,

@@ -1,0 +1,9 @@
+{
+  "suite": "visit_summary_v0",
+  "dataset_version": "37b106c3f622",
+  "n_cases": 8,
+  "metrics": {
+    "set_flag_kinds": 1.0
+  },
+  "git_sha": "0c58566"
+}

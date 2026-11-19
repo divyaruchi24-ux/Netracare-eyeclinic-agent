@@ -37,11 +37,16 @@ switch ($Task) {
     }
     "evals" { Uv run python -m netracare.evals run all --fail-under }
     "evals-upload" { Uv run python -m netracare.evals run booking_policy --upload --fail-under }
+    "evals-live" {
+        Uv run python -m netracare.evals run safety_redflags_llm --live --upload
+        Uv run python -m netracare.evals run visit_summary_live --live --upload
+    }
+    "groq-smoke" { Uv run python scripts/groq_smoke.py }
     "requirements" {
         Uv export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
         Uv export --only-group dev --no-hashes --no-emit-project --format requirements-txt -o requirements-dev.txt
     }
     default {
-        Write-Host "Tasks: install lint fmt type test check migrate seed reseed api ui evals evals-upload requirements"
+        Write-Host "Tasks: install lint fmt type test check migrate seed reseed api ui evals evals-upload evals-live groq-smoke requirements"
     }
 }

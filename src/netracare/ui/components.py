@@ -57,6 +57,41 @@ def reasons_text(reasons: list[str]) -> str:
     return ", ".join(REASON_LABELS.get(r, r) for r in reasons)
 
 
+def md_lines(text: str) -> str:
+    """Keep the script's line breaks in Streamlit markdown (verbatim text, rendered faithfully)."""
+    return text.replace("\n", "  \n")
+
+
+def show_triage(result: dict[str, Any]) -> None:
+    """Render a triage result: emergency -> red box with the verbatim script; urgent ->
+    warning; otherwise the routing sentence."""
+    level, message = result["level"], md_lines(result["message"])
+    if level == "emergency":
+        st.error(message, icon=":material/emergency:")
+    elif level == "urgent":
+        st.warning(message, icon=":material/priority_high:")
+    else:
+        st.info(message, icon=":material/info:")
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _eye_fact(_client: ApiClient, base_url: str, day: str) -> dict[str, Any] | None:
+    try:
+        fact: dict[str, Any] = _client.request("GET", "/eye-fact", auth=False)
+    except ApiError:
+        return None
+    return fact
+
+
+def eye_fact_banner(client: ApiClient) -> None:
+    """Today's eye fact (cached for an hour per day). Never breaks the page."""
+    fact = _eye_fact(client, client.base_url, date.today().isoformat())
+    if not fact:
+        return
+    st.info(f"**Did you know?** {fact['text']}", icon=":material/lightbulb:")
+    st.caption(fact["disclaimer"])
+
+
 def error_box(err: ApiError) -> None:
     ref = f" (reference: `{err.request_id}`)" if err.request_id else ""
     st.error(f"{err.message}{ref}", title="Something went wrong", icon=":material/error:")
@@ -158,7 +193,16 @@ def booking_widget(client: ApiClient, patient_id: str, *, staff: bool, key: str)
         }
         if override:
             body |= {"override": True, "override_reason": override_reason}
-        res = call(client.post, "/appointments", body, idempotency_key=form_key(key))
+        try:
+            res = client.post("/appointments", body, idempotency_key=form_key(key))
+        except ApiError as err:
+            res = None
+            if err.code == "emergency_detected" and isinstance(err.details, dict):
+                reset_form_key(key)
+                st.error(md_lines(err.details["message"]), icon=":material/emergency:")
+                st.caption("We have not booked this visit. Our front desk has been alerted.")
+            else:
+                error_box(err)
         if res:
             reset_form_key(key)
             appt = res["appointment"]

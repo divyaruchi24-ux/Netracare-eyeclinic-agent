@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import Engine
@@ -13,9 +15,13 @@ from netracare.api.routers import ALL_ROUTERS
 from netracare.config import Settings, assert_safe_secrets, get_settings
 from netracare.db.session import make_engine, make_session_factory
 from netracare.domain.clock import Clock, SystemClock
+from netracare.llm.client import make_provider
+from netracare.llm.pricing import Pricing
+from netracare.llm.prompts import PromptRegistry
+from netracare.llm.providers import LLMProvider
 from netracare.log import configure_logging
 from netracare.observability.tracing import configure_tracing
-from netracare.security.rate_limit import LoginThrottle
+from netracare.security.rate_limit import LoginThrottle, SlidingWindowLimiter
 
 
 def create_app(
@@ -23,6 +29,7 @@ def create_app(
     *,
     clock: Clock | None = None,
     engine: Engine | None = None,
+    llm_provider: LLMProvider | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     assert_safe_secrets(settings)
@@ -40,6 +47,12 @@ def create_app(
     app.state.engine = engine
     app.state.session_factory = make_session_factory(engine)
     app.state.login_throttle = LoginThrottle()
+    app.state.llm_provider = llm_provider or make_provider(settings)
+    app.state.prompt_registry = PromptRegistry(settings.prompts_dir).load()
+    app.state.pricing = Pricing.load(settings.pricing_file)
+    app.state.triage_limiter = SlidingWindowLimiter(
+        settings.triage_rate_limit_per_min, timedelta(minutes=1)
+    )
 
     app.add_middleware(
         CORSMiddleware,

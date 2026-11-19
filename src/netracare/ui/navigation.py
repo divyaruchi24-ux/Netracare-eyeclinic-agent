@@ -36,6 +36,12 @@ PATIENT = [
         ":material/event_available:",
         "Find a free time with a doctor and book it.",
     ),
+    PageSpec(
+        "patient_symptom_check.py",
+        "Symptom check",
+        ":material/health_and_safety:",
+        "Tell us what is going on; we point you to the right care. Not medical advice.",
+    ),
     MESSAGES,
 ]
 DOCTOR = [
@@ -45,7 +51,13 @@ DOCTOR = [
         ":material/calendar_month:",
         "Your clinic slots and booked patients; mark visits complete.",
         True,
-    )
+    ),
+    PageSpec(
+        "doctor_visit_notes.py",
+        "Visit notes",
+        ":material/edit_note:",
+        "Turn your notes into a patient summary draft; review, edit and approve.",
+    ),
 ]
 FRONT_DESK = [
     PageSpec(
@@ -54,6 +66,12 @@ FRONT_DESK = [
         ":material/today:",
         "Today's queue by doctor; check in, no-show and complete.",
         True,
+    ),
+    PageSpec(
+        "frontdesk_alerts.py",
+        "Alerts",
+        ":material/emergency:",
+        "Red-flag symptom alerts: emergencies first; acknowledge and resolve.",
     ),
     PageSpec(
         "frontdesk_approvals.py",
@@ -88,6 +106,12 @@ ADMIN = [
     PageSpec("admin_users.py", "Users", ":material/manage_accounts:", "Staff accounts and access."),
     PageSpec(
         "admin_audit.py", "Audit log", ":material/history:", "Who did what, when, with request IDs."
+    ),
+    PageSpec(
+        "admin_llm_usage.py",
+        "AI usage",
+        ":material/monitoring:",
+        "LLM calls, tokens and cost against the daily and monthly budget.",
     ),
 ]
 

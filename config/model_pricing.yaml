@@ -1,0 +1,14 @@
+# USD per 1M tokens, Groq on-demand. Re-verify before changing models.
+verified_on: "2026-11-19"
+source_url: "https://console.groq.com/docs/models"
+models:
+  openai/gpt-oss-120b:
+    input_per_m: 0.15
+    output_per_m: 0.60
+  openai/gpt-oss-20b:
+    input_per_m: 0.075
+    output_per_m: 0.30
+  # Preview model on Groq (evaluation only; may be discontinued at short notice)
+  qwen/qwen3.8-27b:
+    input_per_m: 0.80
+    output_per_m: 4.00

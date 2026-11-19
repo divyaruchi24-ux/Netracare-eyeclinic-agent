@@ -114,8 +114,13 @@ def test_safety_dataset_schema_and_coverage() -> None:
     assert len(ds) >= 30
 
 
-def test_unscored_suite_reports_schema_only() -> None:
-    report = run_suite("safety_redflags_v0", SETTINGS, root=ROOT, write_report=False)
+def test_unscored_suite_reports_schema_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    from netracare.evals.tasks import EvalSuite
+
+    monkeypatch.setitem(
+        SUITES, "schema_only_demo", EvalSuite(dataset="safety_redflags_v0", task=None)
+    )
+    report = run_suite("schema_only_demo", SETTINGS, root=ROOT, write_report=False)
     assert report.scored is False and report.n_cases >= 30 and report.metrics == {}
 
 
@@ -191,3 +196,133 @@ def test_upload_skipped_without_key() -> None:
 def test_config_fingerprint_changes_with_models() -> None:
     other = SETTINGS.model_copy(update={"judge_model": "another"})
     assert config_fingerprint(SETTINGS) != config_fingerprint(other)
+
+
+# -- Phase 2 suites ------------------------------------------------------------------------------
+
+
+def _case(expected: dict[str, Any]) -> EvalCase:
+    return EvalCase(id="x", input={}, expected=expected)
+
+
+def test_under_triage_metric() -> None:
+    from netracare.evals.metrics import UnderTriage
+
+    m = UnderTriage()
+    assert not m.applies(_case({"level": "routine"}))
+    urgent = _case({"level": "urgent"})
+    assert m.applies(urgent)
+    assert m.score(urgent, {"level": "emergency"}) == 1.0
+    assert m.score(urgent, {"level": "urgent"}) == 1.0
+    assert m.score(urgent, {"level": "routine"}) == 0.0
+    assert m.score(urgent, {}) == 0.0
+
+
+def test_code_hit_and_none_flagged() -> None:
+    from netracare.evals.metrics import CodeHit, NoneFlagged
+
+    c = _case({"policy_code": "E4"})
+    assert CodeHit().applies(c) and CodeHit().score(c, {"codes": ["E1", "E4"]}) == 1.0
+    assert not CodeHit().applies(_case({"policy_code": None}))
+    assert NoneFlagged("invented").score(c, {"invented": []}) == 1.0
+    assert NoneFlagged("invented").score(c, {"invented": ["x"]}) == 0.0
+
+
+def test_rules_suite_meets_safety_gate() -> None:
+    report = run_suite("safety_redflags_rules", SETTINGS, root=ROOT, write_report=False)
+    m = report.metrics
+    assert m["recall_level_emergency"] == 1.0
+    assert m["recall_level_urgent"] == 1.0
+    assert m["no_under_triage"] == 1.0
+    assert m["policy_code_hit"] == 1.0
+    assert report.metadata["prompt_versions"]  # all prompts recorded when unspecified
+    assert report.metadata["live"] is False
+
+
+@pytest.mark.parametrize("suite", ["eye_fact_safety", "visit_summary_v0"])
+def test_offline_llm_feature_suites_pass(suite: str) -> None:
+    report = run_suite(suite, SETTINGS, root=ROOT, write_report=False)
+    assert report.metrics and all(v == 1.0 for v in report.metrics.values()), report.failures
+
+
+def test_live_suites_flagged_and_prompt_versions_scoped() -> None:
+    from netracare.evals.runner import prompt_versions
+
+    live = {n for n, s in SUITES.items() if s.requires_live}
+    assert live == {"safety_redflags_llm", "visit_summary_live"}
+    pv = prompt_versions(SETTINGS, SUITES["safety_redflags_llm"], ROOT)
+    assert set(pv) == {"red_flag_classifier", "json_repair"}
+    assert pv["red_flag_classifier"].startswith("v1@")
+
+
+def test_cli_skips_live_suites_without_flag(capsys: pytest.CaptureFixture[str]) -> None:
+    assert cli.main(["--root", str(ROOT), "run", "safety_redflags_llm", "--no-report"]) == 0
+    assert "skipped" in capsys.readouterr().out
+    assert cli.main(["--root", str(ROOT), "run", "all", "--no-report"]) == 0
+    out = capsys.readouterr().out
+    assert "safety_redflags_rules" in out and "safety_redflags_llm" not in out
+    assert cli.main(["--root", str(ROOT), "list"]) == 0
+    assert "live" in capsys.readouterr().out
+
+
+def test_prompt_versions_missing_dir(tmp_path: Path) -> None:
+    from netracare.evals.runner import prompt_versions
+
+    s = Settings(_env_file=None, prompts_dir=str(tmp_path / "none"))  # type: ignore[call-arg]
+    assert prompt_versions(s, SUITES["booking_policy"], tmp_path) == {}
+
+
+def test_upload_reuses_scored_outputs_without_rerunning_task(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import opik
+    import opik.evaluation
+
+    from netracare.evals.tasks import EvalSuite
+
+    calls: list[dict[str, Any]] = []
+
+    def counting_task(inp: dict[str, Any]) -> dict[str, Any]:
+        calls.append(inp)
+        return booking_policy_task(inp)
+
+    suite = EvalSuite(
+        dataset="booking_policy", task=counting_task, metrics=SUITES["booking_policy"].metrics
+    )
+    monkeypatch.setitem(SUITES, "counting_demo", suite)
+    report = run_suite("counting_demo", SETTINGS, root=ROOT, write_report=False)
+    n_local = len(calls)
+
+    class FakeDataset:
+        def __init__(self) -> None:
+            self.rows: list[dict[str, Any]] = []
+
+        def insert(self, rows: list[dict[str, Any]]) -> None:
+            self.rows.extend(rows)
+
+    ds = FakeDataset()
+    captured: dict[str, Any] = {}
+
+    class FakeClient:
+        def __init__(self, **_kw: Any) -> None: ...
+
+        def get_or_create_dataset(self, **_kw: Any) -> FakeDataset:
+            return ds
+
+    def fake_evaluate(**kw: Any) -> None:
+        captured.update(kw)
+        captured["outputs"] = [kw["task"](row) for row in ds.rows]
+
+    monkeypatch.setattr(opik, "Opik", FakeClient)
+    monkeypatch.setattr(opik, "flush_tracker", lambda: None)
+    monkeypatch.setattr(opik.evaluation, "evaluate", fake_evaluate)
+    for var in ("OPIK_API_KEY", "OPIK_PROJECT_NAME", "OPIK_WORKSPACE"):
+        monkeypatch.setenv(var, "x")  # restored by monkeypatch after the test
+    keyed = Settings(_env_file=None, opik_api_key="x", opik_workspace="test-ws")  # type: ignore[call-arg, arg-type]
+    dataset = load_dataset(ROOT / "evals/datasets/booking_policy.jsonl")
+    name = upload_to_opik(suite, dataset, report, keyed)  # explicit workspace: no network lookup
+    assert name == report.experiment_name
+    assert len(calls) == n_local  # no second run of the task
+    by_id = {c.id: c.output for c in report.cases}
+    assert all(o["output"] == by_id[o["case_id"]] for o in captured["outputs"])
+    assert captured["experiment_config"]["dataset_version"] == report.dataset_version

@@ -675,3 +675,69 @@ def test_unknown_appointment_404(client: TestClient, frontdesk_headers: Headers)
 
 def test_frontdesk_login_constant() -> None:
     assert FRONTDESK.startswith("frontdesk1")
+
+
+# -- red-flag triage of booking reasons (Phase 2) ---------------------------------------------
+
+
+def test_emergency_reason_pauses_patient_booking(
+    client: TestClient, db: Session, patient_headers: Headers
+) -> None:
+    from netracare.db.models import TriageAlert
+    from netracare.guardrails import scripts
+
+    slots = slot_ids_at(db, "D5", FRI_10)
+    r = book_api(
+        client, patient_headers, pid("P010"), "D5", slots, reason="sudden curtain over my vision"
+    )
+    assert r.status_code == 409, r.text
+    err = r.json()["error"]
+    assert err["code"] == "emergency_detected"
+    assert err["details"]["message"] == scripts.EMERGENCY_SCRIPT
+    assert _active_holds(db, slots) == 0  # nothing booked
+    alert = fresh(db).get(TriageAlert, err["details"]["alert_id"])
+    assert alert is not None and alert.patient_id == pid("P010")  # but the alert is kept
+    assert_audited(db, "triage.alert", alert.id)
+
+
+def test_urgent_reason_requires_approval(
+    client: TestClient, db: Session, patient_headers: Headers
+) -> None:
+    slots = slot_ids_at(db, "D5", FRI_10)
+    body = booked(
+        client, patient_headers, pid("P010"), "D5", slots, reason="a few new floaters, no flashes"
+    )
+    assert body["requires_approval"] is True
+    assert body["approval_reasons"] == ["post_red_flag"]
+    appt = fresh(db).get(Appointment, body["appointment"]["id"])
+    assert appt is not None and appt.red_flag_level == "urgent"
+
+
+def test_staff_booking_not_blocked_records_level(
+    client: TestClient, db: Session, login: Callable[..., Headers]
+) -> None:
+    from netracare.db.models import TriageAlert
+
+    staff = login(FRONTDESK)
+    slots = slot_ids_at(db, "D5", FRI_10)
+    body = booked(
+        client, staff, pid("P010"), "D5", slots, reason="patient says bleach splashed in eye"
+    )
+    assert body["appointment"]["status"] == "confirmed"
+    appt = fresh(db).get(Appointment, body["appointment"]["id"])
+    assert appt is not None and appt.red_flag_level == "emergency"
+    assert fresh(db).scalar(select(func.count()).select_from(TriageAlert)) == 0
+
+
+def test_benign_reason_books_normally(
+    client: TestClient, db: Session, patient_headers: Headers
+) -> None:
+    body = booked(
+        client,
+        patient_headers,
+        pid("P010"),
+        "D5",
+        slot_ids_at(db, "D5", FRI_10),
+        reason="annual check-up",
+    )
+    assert body["requires_approval"] is False

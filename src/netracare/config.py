@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = None
     groq_model_reasoning: str = "openai/gpt-oss-120b"
     groq_model_fast: str = "openai/gpt-oss-20b"
+    llm_enabled: bool = True
+    llm_timeout_fast_s: float = Field(default=15.0, gt=0)
+    llm_timeout_reasoning_s: float = Field(default=45.0, gt=0)
+    llm_max_retries: int = Field(default=3, ge=1, le=6)
+    prompts_dir: str = "prompts"
+    pricing_file: str = "config/model_pricing.yaml"
+
+    # Triage
+    triage_confidence_threshold: float = Field(default=0.6, ge=0, le=1)
+    triage_rate_limit_per_min: int = Field(default=10, ge=1)
 
     # LLM-as-judge
     judge_provider: str = "groq"
@@ -55,6 +65,7 @@ class Settings(BaseSettings):
 
     # Budgets (USD)
     monthly_llm_budget_usd: float = Field(default=20.0, ge=0)
+    daily_llm_budget_usd: float = Field(default=1.5, ge=0)
     conversation_budget_usd: float = Field(default=0.05, ge=0)
 
     @property

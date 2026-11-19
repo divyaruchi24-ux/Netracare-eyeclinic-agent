@@ -145,3 +145,8 @@ Rule: **agents → services → repositories → DB**. UI → API only. MCP tool
   - *CI:* the `docker-build` job stays, so the `Dockerfile` and `docker-compose.yml` keep working for anyone who has Docker.
   - *Deployment (Phase 7):* Render's **native Python runtime**, which builds with `pip install -r requirements.txt` and starts uvicorn and Streamlit as two web services. A container is not required.
   - Docker can be added later without code changes.
+- **2026-11-19** - **Phase 2 LLM safety architecture** (details in [phase-2/understanding.md](phase-2/understanding.md)):
+  - Red-flag triage is two-layer: deterministic rules are the floor (including "routine" for any clinical-looking text) and the LLM can only escalate. Safety never depends on Groq or the budget.
+  - Patient-facing escalation and routing text is always a verbatim constant from `safety_policy.md`, guarded by a policy-diff test.
+  - LLM calls never run inside a DB write transaction (SQLite write lock); usage rows are written in their own transactions.
+  - Pricing verified 2026-11-19 on Groq's model docs; spend capped at $1.50/day and $20/month.

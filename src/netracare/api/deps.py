@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Iterator
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from netracare.config import Settings
 from netracare.db.session import begin_write
 from netracare.domain.clock import Clock
 from netracare.errors import AppError
+from netracare.llm.client import LLMClient
 from netracare.security.rate_limit import LoginThrottle
 
 _READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -63,3 +65,19 @@ DbSession = Annotated[Session, Depends(get_db)]
 ClockDep = Annotated[Clock, Depends(get_clock)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ThrottleDep = Annotated[LoginThrottle, Depends(get_throttle)]
+
+
+def get_llm_client(request: Request) -> LLMClient:
+    state = request.app.state
+    return LLMClient(
+        settings=state.settings,
+        clock=state.clock,
+        provider=state.llm_provider,
+        registry=state.prompt_registry,
+        pricing=state.pricing,
+        session_factory=state.session_factory,
+        sleep=getattr(state, "llm_sleep", time.sleep),
+    )
+
+
+LLMDep = Annotated[LLMClient, Depends(get_llm_client)]

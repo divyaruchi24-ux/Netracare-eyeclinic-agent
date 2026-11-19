@@ -19,7 +19,16 @@ Each phase links to its detailed `task.md`. A phase box is ticked only when all 
   - [x] Streamlit dashboards
   - [x] Opik tracing + eval harness + CI eval gate (foundation; full suite in Phase 5)
   - [x] Tests, RETRO, commit `phase-1: ...`
-- [ ] **Phase 2 — First LLM features** → phase-2/task.md
+- [x] **Phase 2 — First LLM features** → [phase-2/task.md](phase-2/task.md)
+  - [x] Planning docs written
+  - [x] Planning docs approved
+  - [x] LLM client (retries, timeouts, structured output, cost, budget, Opik spans) + prompt registry
+  - [x] Guardrails: red-flag rules, advice filter, verbatim scripts
+  - [x] Red-flag triage + front-desk alerts + booking pause on emergency
+  - [x] Eye-fact banner
+  - [x] Visit-summary drafts (doctor approval)
+  - [x] UI pages, evals (rules gate + live LLM suite), Groq smoke test
+  - [x] Tests, RETRO, commit `phase-2: ...`
 - [ ] **Phase 3 — Patient chat with RAG** → phase-3/task.md
 - [ ] **Phase 4 — Booking agent (LangGraph)** → phase-4/task.md
 - [ ] **Phase 5 — Evals & LLMOps (Opik)** → phase-5/task.md

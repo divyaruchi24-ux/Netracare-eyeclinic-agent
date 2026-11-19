@@ -21,6 +21,9 @@ dependencies = [
     "streamlit>=1.67.0",
     "requests>=2.34.2",
     "opik>=2.2.149",
+    "groq>=1.7.0",
+    "langchain-core>=1.8.3",
+    "tenacity>=9.2.1",
 ]
 
 [project.scripts]
@@ -64,6 +67,11 @@ known-first-party = ["netracare", "tests"]
 "src/netracare/db/migrations/**" = ["E501"]
 # Streamlit pages: `if st.button(...): if call(...): st.rerun()` reads better nested.
 "src/netracare/ui/app_pages/**" = ["SIM102"]
+# LLM error names follow the Phase 2 spec (LLMUnavailable, BudgetExceeded, ...).
+"src/netracare/llm/types.py" = ["N818"]
+# Regex pattern tables read better unwrapped.
+"src/netracare/guardrails/redflag_rules.py" = ["E501"]
+"src/netracare/guardrails/advice_filter.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -78,7 +86,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --strict-markers --import-mode=importlib"
+addopts = "-q --strict-markers --import-mode=importlib -m 'not live'"
 pythonpath = ["src", "."]
 markers = [
     "live: calls real external services (LLM, Opik); opt-in",

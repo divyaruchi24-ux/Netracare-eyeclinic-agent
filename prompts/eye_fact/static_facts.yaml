@@ -1,0 +1,23 @@
+# Reviewed fallback facts, one per topic id in topics.yaml. Shown when generation fails, is
+# over budget, or is rejected by the advice filter. Every fact must pass `check_fact`.
+facts:
+  cornea_no_vessels: "The cornea, the clear front window of the eye, has no blood vessels. It gets oxygen directly from the air and nutrients from the tears and the fluid behind it."
+  pupil_size: "The pupil is an opening that widens in dim light and narrows in bright light, much like the aperture of a camera, to control how much light enters the eye."
+  retina_role: "The retina is a thin layer at the back of the eye that turns light into electrical signals, which the brain then reads as the images we see."
+  blind_spot: "Each eye has a small blind spot where the optic nerve leaves the retina. The brain fills in the gap, so we normally never notice it."
+  tear_layers: "Tears are made of three layers: an oily outer layer, a watery middle layer and a mucus layer that helps the tear film spread evenly over the eye."
+  rods_cones: "The retina has two kinds of light-sensing cells: rods, which work well in dim light, and cones, which pick up colour and fine detail."
+  blinking: "Blinking spreads a fresh tear film across the front of the eye. Most people blink many times a minute without thinking about it."
+  iris_unique: "The iris, the coloured ring around the pupil, has a pattern of folds and furrows that is unique to each person, even between twins."
+  lens_focus: "Behind the iris sits the lens, which changes shape so the eye can switch focus between things that are near and things that are far away."
+  optic_nerve: "The optic nerve is a cable of about a million nerve fibres that carries signals from each eye to the brain."
+  upside_down_image: "The image formed on the back of the eye is upside down. The brain turns it the right way up, so the world looks as it should."
+  eye_muscles: "Six small muscles attached to each eye work together to move it up, down, side to side and even rotate it slightly."
+  colour_vision: "Colour vision comes from three types of cones in the retina, each most sensitive to red, green or blue light; the brain blends their signals into every colour we see."
+  dark_adaptation: "When we step into the dark, the eyes slowly become more sensitive to light, which is why a dim room looks brighter after a while."
+  macula_fovea: "The fovea, a tiny pit in the centre of the macula, is packed with cones and gives us our sharpest, most detailed vision."
+  binocular_depth: "Because our two eyes see from slightly different positions, the brain compares the two views to judge depth and distance."
+  eye_movements: "When reading or looking around, the eyes move in quick jumps called saccades, pausing briefly between each jump to take in detail."
+  vitreous_gel: "Most of the inside of the eye is filled with the vitreous, a clear gel that helps the eye keep its round shape."
+  sclera_white: "The white of the eye is called the sclera. It is a tough outer coat that gives the eyeball its strength and shape."
+  eyelashes: "Eyelashes help keep dust and small particles away from the eye, and touching them triggers a quick protective blink."

@@ -1,0 +1,24 @@
+id: json_repair
+version: 1
+tier: fast
+temperature: 0.0
+max_tokens: 1800
+reasoning_effort: low
+output_schema: null
+policy_version: "1.0"
+owner: clinic-admin
+changelog: Generic one-shot repair of invalid structured output.
+input_variables: [schema, errors, output]
+system: |
+  You fix JSON so that it matches a JSON schema. Keep the meaning and the values of the
+  original; change only what is needed to make it valid. Do not add new information.
+  Reply with the corrected JSON only.
+user: |
+  Schema:
+  {schema}
+
+  Validation errors:
+  {errors}
+
+  Invalid output:
+  {output}

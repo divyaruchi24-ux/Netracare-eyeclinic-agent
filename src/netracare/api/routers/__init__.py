@@ -12,9 +12,12 @@ from netracare.api.routers import (
     availability,
     directory,
     doctor,
+    eye_fact,
     front_desk,
     notifications,
     schedule,
+    triage,
+    visit_summaries,
 )
 
 # `doctor` (/doctors/me/schedule) is registered before `directory` (/doctors/{doctor_id}).
@@ -24,9 +27,12 @@ ALL_ROUTERS: list[APIRouter] = [
     directory.router,
     schedule.router,
     availability.router,
+    visit_summaries.router,
     appointments.router,
     approvals.router,
     front_desk.router,
     admin.router,
     notifications.router,
+    triage.router,
+    eye_fact.router,
 ]

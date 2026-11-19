@@ -40,3 +40,27 @@ class LoginThrottle:
     def reset(self, key: str) -> None:
         with self._lock:
             self._failures.pop(key, None)
+
+
+class SlidingWindowLimiter:
+    """At most `limit` hits per key within `window` (in-process; per user ID or client IP)."""
+
+    def __init__(self, limit: int, window: timedelta) -> None:
+        self.limit = limit
+        self.window = window
+        self._hits: dict[str, deque[datetime]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def hit(self, key: str, now: datetime) -> None:
+        with self._lock:
+            q = self._hits[key]
+            while q and now - q[0] >= self.window:
+                q.popleft()
+            if len(q) >= self.limit:
+                retry_after = int((q[0] + self.window - now).total_seconds()) + 1
+                raise RateLimitedError(
+                    "rate_limited",
+                    "too many requests; please wait a moment",
+                    details={"retry_after_seconds": retry_after},
+                )
+            q.append(now)

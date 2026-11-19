@@ -33,8 +33,9 @@ def _text(at: AppTest) -> str:
 
 def test_navigation_per_role() -> None:
     assert _titles(None) == ["Sign in", "Register"]
-    assert _titles("patient") == ["My appointments", "Book a visit", "Messages"]
-    assert _titles("doctor") == ["My schedule"]
+    assert _titles("patient") == ["My appointments", "Book a visit", "Symptom check", "Messages"]
+    assert _titles("doctor") == ["My schedule", "Visit notes"]
+    assert "Alerts" in _titles("front_desk") and "AI usage" in _titles("admin")
     assert "Approvals" in _titles("front_desk") and "Audit log" not in _titles("front_desk")
     assert {"Approvals", "Audit log", "Schedules", "Users"} <= set(_titles("admin"))
     assert _titles("unknown") == ["Sign in"]

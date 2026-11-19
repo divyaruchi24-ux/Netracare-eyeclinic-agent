@@ -9,7 +9,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from netracare.ui.components import DISCLAIMER
+from netracare.ui.components import DISCLAIMER, eye_fact_banner
 from netracare.ui.navigation import pages_for
 from netracare.ui.state import get_client
 
@@ -41,6 +41,7 @@ with st.sidebar:
             client.logout()
             st.rerun()
 
+eye_fact_banner(client)
 st.title(nav.title)
 nav.run()
 st.divider()

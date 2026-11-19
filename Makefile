@@ -1,4 +1,4 @@
-.PHONY: install lint fmt type test check migrate seed api ui evals evals-upload requirements
+.PHONY: install lint fmt type test check migrate seed api ui evals evals-upload evals-live groq-smoke requirements
 
 install:
 	uv sync
@@ -36,6 +36,13 @@ evals:
 
 evals-upload:
 	uv run python -m netracare.evals run booking_policy --upload --fail-under
+
+evals-live:
+	uv run python -m netracare.evals run safety_redflags_llm --live --upload
+	uv run python -m netracare.evals run visit_summary_live --live --upload
+
+groq-smoke:
+	uv run python scripts/groq_smoke.py
 
 requirements:
 	uv export --no-dev --no-hashes --no-emit-project --format requirements-txt -o requirements.txt

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -11,9 +12,11 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
+    Numeric,
     String,
     Text,
     Time,
@@ -25,16 +28,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from netracare.db.base import Base, IdMixin, TimestampMixin, UTCDateTime, utcnow
 from netracare.domain.enums import (
     ActorType,
+    AlertStatus,
     AppointmentStatus,
     AppointmentType,
     ApprovalKind,
     ApprovalStatus,
     DocType,
+    LLMCallStatus,
     NotificationChannel,
     NotificationStatus,
     RedFlagLevel,
     Role,
     SlotStatus,
+    SummaryStatus,
 )
 
 
@@ -347,3 +353,101 @@ class IdempotencyRecord(IdMixin, Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
 
     __table_args__ = (UniqueConstraint("user_id", "key"),)
+
+
+class LLMCall(IdMixin, Base):
+    """One row per LLM call (success or failure). Never stores prompt or completion text."""
+
+    __tablename__ = "llm_calls"
+
+    at_utc: Mapped[datetime] = mapped_column(
+        UTCDateTime(), default=utcnow, nullable=False, index=True
+    )
+    request_id: Mapped[str | None] = mapped_column(String(64))
+    purpose: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    prompt_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cost_usd: Mapped[Decimal] = mapped_column(
+        Numeric(12, 6, asdecimal=True), default=Decimal(0), nullable=False
+    )
+    latency_ms: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[LLMCallStatus] = mapped_column(
+        _enum(LLMCallStatus, "llm_call_status"), nullable=False
+    )
+    error_code: Mapped[str | None] = mapped_column(String(64))
+    actor_user_id: Mapped[str | None] = mapped_column(String(36))
+
+
+class TriageAlert(IdMixin, Base):
+    """Front-desk alert raised by an emergency/urgent triage result."""
+
+    __tablename__ = "triage_alerts"
+
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+    level: Mapped[RedFlagLevel] = mapped_column(
+        _enum(RedFlagLevel, "red_flag_level"), nullable=False
+    )
+    codes: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    confidence: Mapped[float | None] = mapped_column(Float)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    excerpt_redacted: Mapped[str] = mapped_column(String(200), nullable=False)
+    patient_id: Mapped[str | None] = mapped_column(ForeignKey("patients.id"))
+    actor_user_id: Mapped[str | None] = mapped_column(String(36))
+    status: Mapped[AlertStatus] = mapped_column(
+        _enum(AlertStatus, "alert_status"), default=AlertStatus.OPEN, nullable=False
+    )
+    acknowledged_by: Mapped[str | None] = mapped_column(String(36))
+    acknowledged_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    resolved_by: Mapped[str | None] = mapped_column(String(36))
+    resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
+    __table_args__ = (Index("ix_triage_alerts_status_created", "status", "created_at"),)
+
+
+class EyeFact(Base):
+    """The banner fact for one clinic-local day (primary key = day, so one per day)."""
+
+    __tablename__ = "eye_facts"
+
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    topic: Mapped[str] = mapped_column(String(64), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)
+    prompt_version: Mapped[int | None] = mapped_column(Integer)
+    rejected_reason: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+
+
+class VisitSummary(IdMixin, TimestampMixin, Base):
+    """Doctor-approved, patient-friendly visit summary. Drafts are never shown to patients."""
+
+    __tablename__ = "visit_summaries"
+
+    appointment_id: Mapped[str] = mapped_column(
+        ForeignKey("appointments.id"), unique=True, nullable=False
+    )
+    doctor_id: Mapped[str] = mapped_column(ForeignKey("doctors.id"), nullable=False)
+    raw_notes: Mapped[str] = mapped_column(Text, nullable=False)
+    draft_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    final_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    status: Mapped[SummaryStatus] = mapped_column(
+        _enum(SummaryStatus, "summary_status"), default=SummaryStatus.DRAFT, nullable=False
+    )
+    needs_attention: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    acknowledged_flags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    prompt_id: Mapped[str | None] = mapped_column(String(64))
+    prompt_version: Mapped[int | None] = mapped_column(Integer)
+    model: Mapped[str | None] = mapped_column(String(128))
+    approved_by: Mapped[str | None] = mapped_column(String(36))
+    approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__ = {"version_id_col": version}  # noqa: RUF012

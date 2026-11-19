@@ -87,6 +87,29 @@ class RedFlagLevel(StrEnum):
     ROUTINE = "routine"
     NON_CLINICAL = "non_clinical"
 
+    def severity(self) -> int:
+        """Ordering for "most severe wins": non_clinical 0 < routine 1 < urgent 2 < emergency 3."""
+        return _SEVERITY[self]
+
+    def escalate(self) -> RedFlagLevel:
+        """One level more severe (emergency stays emergency)."""
+        return _BY_SEVERITY[min(self.severity() + 1, 3)]
+
+    @staticmethod
+    def most_severe(*levels: RedFlagLevel) -> RedFlagLevel:
+        return max(levels, key=lambda lv: lv.severity())
+
+
+_SEVERITY: dict[RedFlagLevel, int] = {
+    RedFlagLevel.NON_CLINICAL: 0,
+    RedFlagLevel.ROUTINE: 1,
+    RedFlagLevel.URGENT: 2,
+    RedFlagLevel.EMERGENCY: 3,
+}
+_BY_SEVERITY: dict[int, RedFlagLevel] = {v: k for k, v in _SEVERITY.items()}
+
+TriageLevel = RedFlagLevel
+
 
 class ApprovalReason(StrEnum):
     WITHIN_24H_CHANGE = "within_24h_change"
@@ -118,3 +141,22 @@ class ApprovalStatus(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
     WITHDRAWN = "withdrawn"
+
+
+class AlertStatus(StrEnum):
+    OPEN = "open"
+    ACKNOWLEDGED = "acknowledged"
+    RESOLVED = "resolved"
+
+
+class SummaryStatus(StrEnum):
+    DRAFT = "draft"
+    APPROVED = "approved"
+    DISCARDED = "discarded"
+
+
+class LLMCallStatus(StrEnum):
+    OK = "ok"
+    ERROR = "error"
+    BUDGET_BLOCKED = "budget_blocked"
+    INVALID_OUTPUT = "invalid_output"

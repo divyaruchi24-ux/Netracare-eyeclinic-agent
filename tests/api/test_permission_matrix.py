@@ -72,6 +72,19 @@ ROUTES: dict[tuple[str, str], frozenset[str] | str] = {
     ("PATCH", "/users/{user_id}"): ADMIN_ONLY,
     ("GET", "/audit-logs"): ADMIN_ONLY,
     ("GET", "/notifications"): frozenset({P, F, A}),
+    # Phase 2: LLM features
+    ("POST", "/triage"): PUBLIC,
+    ("GET", "/triage/alerts"): STAFF,
+    ("POST", "/triage/alerts/{alert_id}/ack"): STAFF,
+    ("POST", "/triage/alerts/{alert_id}/resolve"): STAFF,
+    ("GET", "/eye-fact"): PUBLIC,
+    ("POST", "/appointments/{appointment_id}/visit-summary"): frozenset({D}),
+    # patients/guardians see approved summaries only; staff see status only (service-level)
+    ("GET", "/appointments/{appointment_id}/visit-summary"): ALL,
+    ("PATCH", "/appointments/{appointment_id}/visit-summary"): frozenset({D}),
+    ("POST", "/appointments/{appointment_id}/visit-summary/approve"): frozenset({D}),
+    ("POST", "/appointments/{appointment_id}/visit-summary/discard"): frozenset({D}),
+    ("GET", "/admin/llm-usage"): ADMIN_ONLY,
 }
 
 PATH_VALUES = {
@@ -83,6 +96,7 @@ PATH_VALUES = {
     "appointment_id": "no-such-appointment",
     "request_id": "no-such-request",
     "user_id": "no-such-user",
+    "alert_id": "no-such-alert",
 }
 CALLERS = ["anonymous", P, D, F, A]
 

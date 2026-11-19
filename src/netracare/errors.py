@@ -54,6 +54,10 @@ class RateLimitedError(AppError):
     status = 429
 
 
+class ServiceUnavailableError(AppError):
+    status = 503
+
+
 def require(value: T | None, code: str = "not_found", message: str | None = None) -> T:
     """Return `value`, or raise NotFoundError when it is None (instead of `assert`)."""
     if value is None:

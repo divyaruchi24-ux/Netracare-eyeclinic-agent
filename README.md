@@ -15,9 +15,12 @@ copy .env.example .env      # then fill in secrets (never commit .env)
 .\scripts\dev.ps1 api       # http://localhost:8000/docs
 .\scripts\dev.ps1 ui        # http://localhost:8501 (Streamlit; talks to the API)
 .\scripts\dev.ps1 evals     # offline eval suites + regression gate
+.\scripts\dev.ps1 groq-smoke # live Groq check (needs GROQ_API_KEY)
 ```
 
 Demo logins use `SEED_DEFAULT_PASSWORD`: `admin@netracare.example`, `frontdesk1@netracare.example`, and `kavya.nair@netracare.example` (a doctor). You can also register a new patient in the UI.
+
+**AI features (Groq):** set `GROQ_API_KEY` in `.env` for the red-flag classifier, the daily eye-fact banner and visit-summary drafts. Without a key everything still works safely: triage runs on the deterministic rules, the banner shows a reviewed static fact, and doctors write summaries by hand. Spend is capped at `DAILY_LLM_BUDGET_USD` (1.50) and `MONTHLY_LLM_BUDGET_USD` (20); prices live in `config/model_pricing.yaml`, prompts in `prompts/` (`python -m netracare.llm.prompts list`). Admins see usage under **AI usage**.
 
 **Opik:** to trace bookings and approvals (with no patient details), set `OPIK_API_KEY` and `OPIK_ENABLED=true`; `OPIK_WORKSPACE` is optional. Run `.\scripts\dev.ps1 evals-upload` to log an experiment. See [docs/evals.md](docs/evals.md).
 

@@ -38,6 +38,10 @@ TEMPLATES: dict[str, str] = {
         "The clinic is closed on {when}. Our front desk will contact you to reschedule."
     ),
     "no_show_recorded": "We missed you for your appointment with {doctor} on {when}.",
+    "visit_summary_ready": (
+        "{doctor} has shared a summary of your visit on {when}. You can read it under "
+        "My appointments."
+    ),
 }
 
 

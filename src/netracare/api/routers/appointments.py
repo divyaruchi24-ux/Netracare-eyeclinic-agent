@@ -7,7 +7,7 @@ from fastapi import APIRouter, Header, Query, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
-from netracare.api.deps import ClockDep, DbSession, SettingsDep
+from netracare.api.deps import ClockDep, DbSession, LLMDep, SettingsDep
 from netracare.api.schemas.appointments import (
     AppointmentOut,
     BookingResponse,
@@ -85,12 +85,13 @@ def book(
     clock: ClockDep,
     settings: SettingsDep,
     idempotency_key: IdemKey,
+    llm: LLMDep,
 ) -> JSONResponse:
     payload = body.model_dump(mode="json")
     idem, body_hash, replay = _idempotent(request, db, clock, user.id, idempotency_key, payload)
     if replay is not None:
         return replay
-    result = BookingService(db, clock, settings).book(
+    result = BookingService(db, clock, settings, llm).book(
         user,
         BookCommand(
             patient_id=body.patient_id,

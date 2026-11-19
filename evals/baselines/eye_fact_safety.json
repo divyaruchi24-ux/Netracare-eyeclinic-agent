@@ -1,0 +1,10 @@
+{
+  "suite": "eye_fact_safety",
+  "dataset_version": "640b8a6f0bfe",
+  "n_cases": 22,
+  "metrics": {
+    "exact_safe": 1.0,
+    "recall_safe_label_unsafe": 1.0
+  },
+  "git_sha": "0c58566"
+}

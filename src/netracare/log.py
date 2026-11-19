@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping
 from contextvars import ContextVar
 from typing import Any
 
@@ -27,9 +27,30 @@ def _mask_phone(match: re.Match[str]) -> str:
 
 
 def redact(value: str) -> str:
-    """Mask emails and phone numbers. Full PII redaction is extended in Phase 2."""
+    """Mask emails and phone numbers (names: see `redact_names`)."""
     value = _EMAIL_RE.sub("[EMAIL]", value)
     return _PHONE_RE.sub(_mask_phone, value)
+
+
+def redact_names(value: str, names: Iterable[str], replacement: str = "the patient") -> str:
+    """Replace each known name (and each of its words of >= 3 letters) case-insensitively on
+    word boundaries. Longest first, so "Asha Verma" is replaced before "Asha"."""
+    parts: set[str] = set()
+    for name in names:
+        name = (name or "").strip()
+        if not name:
+            continue
+        parts.add(name)
+        parts.update(w for w in re.split(r"\s+", name) if len(w) >= 3 and w.isalpha())
+    for part in sorted(parts, key=len, reverse=True):
+        value = re.sub(rf"(?<!\w){re.escape(part)}(?!\w)", replacement, value, flags=re.IGNORECASE)
+    return value
+
+
+def redact_all(value: str, names: Iterable[str] = ()) -> str:
+    """Emails, phone numbers and the given names."""
+    masked = redact(value)  # emails/phones first, so names inside them do not break the match
+    return redact_names(masked, names) if names else masked
 
 
 def _add_request_id(

@@ -48,7 +48,8 @@ jobs:
           if-no-files-found: ignore
 
   evals-opik:
-    # Mirrors the experiment to Opik Cloud on main when the OPIK_API_KEY secret exists.
+    # Mirrors experiments to Opik Cloud on main when the OPIK_API_KEY secret exists; also runs
+    # the live (Groq) suites when GROQ_API_KEY is set. Non-blocking: the offline gate decides.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: evals-offline
     runs-on: ubuntu-latest
@@ -56,6 +57,7 @@ jobs:
     env:
       OPIK_API_KEY: ${{ secrets.OPIK_API_KEY }}
       OPIK_WORKSPACE: ${{ secrets.OPIK_WORKSPACE }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         if: env.OPIK_API_KEY != ''
@@ -66,7 +68,14 @@ jobs:
       - if: env.OPIK_API_KEY != ''
         run: uv sync --frozen
       - if: env.OPIK_API_KEY != ''
-        run: uv run python -m netracare.evals run booking_policy --upload
+        run: |
+          for suite in booking_policy safety_redflags_rules eye_fact_safety visit_summary_v0; do
+            uv run python -m netracare.evals run "$suite" --upload
+          done
+      - if: env.OPIK_API_KEY != '' && env.GROQ_API_KEY != ''
+        run: |
+          uv run python -m netracare.evals run safety_redflags_llm --live --upload
+          uv run python -m netracare.evals run visit_summary_live --live --upload
       - if: env.OPIK_API_KEY == ''
         run: echo "OPIK_API_KEY secret not set - skipping Opik upload"
 

@@ -60,7 +60,27 @@ def begin_write(session: Session) -> None:
 
     Must be called before the session runs any statement; a no-op on other databases.
     """
+    session.info[WRITE_TX_OPTION] = True
     session.connection(execution_options={WRITE_TX_OPTION: True})
+
+
+@contextmanager
+def outside_transaction(session: Session, *, write_after: bool | None = None) -> Iterator[None]:
+    """Run a slow block (an LLM call) without holding a DB transaction or the SQLite write lock.
+
+    The caller's transaction must contain only reads so far; it is committed (a no-op for
+    reads), the block runs, and then a new transaction is opened - a write transaction
+    (BEGIN IMMEDIATE) if the session was a write session or `write_after` is true.
+    """
+    if session.new or session.dirty or session.deleted:
+        raise RuntimeError("outside_transaction: the session has unflushed changes")
+    reopen_write = session.info.get(WRITE_TX_OPTION, False) if write_after is None else write_after
+    session.commit()
+    try:
+        yield
+    finally:
+        if reopen_write:
+            begin_write(session)
 
 
 @contextmanager
