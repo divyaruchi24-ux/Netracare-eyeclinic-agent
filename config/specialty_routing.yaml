@@ -1,0 +1,86 @@
+# Non-red-flag concern lexicon for chat specialist routing (docs/phase-3/understanding.md 3.9).
+# Red-flag codes (E1-E10, U1-U6) are routed by guardrails/redflag_rules.py first; this file only
+# maps everyday concerns to the specialty that usually sees them. It is clinical-adjacent data:
+# changes need the same review as docs/safety_policy.md.
+#
+# phrases: matched as whole words on the normalised message (lowercase, Phase 2 typo map).
+# concern: the neutral phrase used in the section 6 routing sentence when a phrase matches.
+# clarify: how the option is described in a clarifying question.
+version: 1
+reviewed_by: clinic-admin (fictional)
+reviewed_on: 2026-11-24
+specialties:
+  CORNEA:
+    concern: dry or irritated eyes, contact lenses or vision correction
+    clarify: dryness, irritation, contact lenses or LASIK
+    phrases:
+      - dry eye
+      - dry eyes
+      - dryness
+      - gritty
+      - burning eyes
+      - itchy eyes
+      - contact lens
+      - contact lenses
+      - lenses irritate
+      - lasik
+      - smile surgery
+      - prk
+      - refractive
+      - specs removal
+      - get rid of glasses
+      - keratoconus
+      - cornea
+  RETINA:
+    concern: the back of the eye (retina)
+    clarify: floaters, flashes, the retina or diabetes
+    phrases:
+      - floater
+      - floaters
+      - flashes
+      - retina
+      - diabetic eye
+      - diabetes
+      - diabetic
+      - sugar patient
+      - macula
+      - macular
+      - oct review
+  GLAUCOMA:
+    concern: eye pressure or a family history of glaucoma
+    clarify: eye pressure or a family history of glaucoma
+    phrases:
+      - eye pressure
+      - pressure in my eye
+      - high pressure
+      - glaucoma
+      - optic nerve
+      - family history
+      - visual field
+  PEDIATRIC:
+    concern: children's eyes
+    clarify: a child's eyes
+    phrases:
+      - squint
+      - lazy eye
+      - cross eyed
+      - crossed eyes
+      - school screening
+  GENERAL:
+    concern: cataract, eyelids or tear ducts
+    clarify: cataract, eyelids, tear ducts or a general check-up
+    phrases:
+      - cataract
+      - cloudy vision
+      - eyelid
+      - eyelids
+      - droopy
+      - drooping lid
+      - ptosis
+      - tear duct
+      - watery eye
+      - watering eyes
+      - stye
+      - general check up
+      - routine check up
+      - eye check up

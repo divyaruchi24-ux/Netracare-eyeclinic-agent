@@ -190,7 +190,12 @@ def detect(text: str) -> list[RuleMatch]:
         add("E5", first("trauma"))
     if (h["severe_pain"] or h["pain"]) and h["e6_assoc"] and (h["severe_pain"] or h["eye"]):
         add("E6", first("e6_assoc"))
-    if h["double"] or h["droop"] or (h["neuro"] and h["eye"] and h["sudden"]):
+    # E7 is about *sudden* drooping or nerve signs (policy 4.1). A long-standing droopy lid is a
+    # routine ptosis consult (kb/procedures/ptosis.md), so a droop alone no longer escalates;
+    # with "sudden", a nerve sign (numbness, weakness, slurring) or a headache it still does.
+    nerve = [x for x in h["neuro"] if not x.startswith("droop")]
+    droop_red_flag = h["droop"] and (h["sudden"] or nerve or "headache" in h["e6_assoc"])
+    if h["double"] or droop_red_flag or (nerve and h["eye"] and h["sudden"]):
         add("E7", first("double", "droop", "neuro"))
     if h["surgery"] and h["post_op"] and not _is_pre_op_question(t):
         add("E8", first("surgery"))
@@ -267,17 +272,32 @@ def specialty_for(codes: Iterable[str], text: str) -> str | None:
     return "GENERAL" if code_list else None
 
 
+_MEDS = r"(drops?|eye ?drops|medicine|medicines|medication|medications|meds|tablets?|pills?|treatment|insulin|steroids?|antibiotics?|ointment)"
 _MEDICAL_QUESTION = re.compile(
     r"\b(what|which|how much|how many) (dose|dosage|drops?|medicine|medication|tablets?|eye ?drops)\b"
-    r"|\bdose of\b|\bshould i (stop|start|take|use|skip|change|continue|keep using|put)\b"
+    r"|\bdose of\b"
+    r"|\bshould i (stop|start|take|use|skip|change|continue|keep using|put)\b.{0,40}\b"
+    + _MEDS
+    + r"\b"
     r"|\bcan i (stop|take|use|skip|put)\b.{0,40}\b(drops?|medicine|medication|tablets?|lenses)\b"
     r"|\bis (that|it|this) (dangerous|normal|serious|bad|ok|okay|safe)\b"
-    r"|\bwhat (does|do) (my|the|this|these) .{0,40}\bmean\b|\bdo i (have|need)\b"
+    r"|\bwhat (does|do) (my|the|this|these) .{0,40}\bmean\b|\bdo i have\b"
+    r"|\bdo i need (a |an |any )?(surgery|operation|glasses|specs|spectacles|drops|eye ?drops|medicine|medication|treatment|laser|lasik|tablets?|antibiotics?)\b"
     r"|\bwhat (is wrong|could it be|might it be)\b|\bdiagnos\w*\b"
 )
+# Preparation questions answered by the KB ("when should I stop wearing lenses before the LASIK
+# evaluation?") are logistics, not medical advice, unless they mention a medicine.
+_PREP_CONTEXT = re.compile(
+    r"\bbefore (the |my |a |an )?(evaluation|assessment|surgery|operation|visit|exam|examination"
+    r"|appointment|test|scan|consultation|procedure|lasik|check ?-?up)\b"
+)
+_MEDS_RE = re.compile(r"\b" + _MEDS + r"\b")
 
 
 def asks_medical_advice(text: str) -> bool:
     """A request for medical advice, interpretation or a diagnosis (answered with the
     section 5.3 refusal script, never with advice)."""
-    return bool(_MEDICAL_QUESTION.search(normalize(text)))
+    t = normalize(text)
+    if _PREP_CONTEXT.search(t) and not _MEDS_RE.search(t):
+        return False
+    return bool(_MEDICAL_QUESTION.search(t))

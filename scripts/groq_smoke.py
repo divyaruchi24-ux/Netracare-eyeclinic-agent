@@ -5,7 +5,9 @@ Checks, against the real API and the configured database:
 2. structured triage output (strict json_schema) round-trips on 3 fixed texts (fast model);
 3. one eye-fact is generated and passes the advice filter (fast model);
 4. one visit-summary draft round-trips (reasoning model);
-5. every call wrote an `llm_calls` row with tokens and cost; Opik spans are flushed if enabled.
+5. one chat turn: router (fast) -> hybrid retrieval over the ingested KB -> cited answer
+   (reasoning) that passes the post-checks; needs `dev.ps1 ingest` (or reseed) first;
+6. every call wrote an `llm_calls` row with tokens and cost; Opik spans are flushed if enabled.
 Exit code 0 on success, 1 on any failed check.
 """
 
@@ -43,6 +45,9 @@ NOTES = (
 
 
 def main() -> int:
+    # Model text can contain characters a Windows console cannot encode (e.g. U+202F).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     settings = get_settings()
     key = settings.groq_api_key.get_secret_value() if settings.groq_api_key else ""
     if not key:
@@ -110,11 +115,39 @@ def main() -> int:
     check(isinstance(draft.value, VisitSummaryDraft), "draft validated")
     print(f"     faithfulness flags: {flags or 'none'}")
 
-    print("5. usage rows")
+    print("5. chat turn (router + retrieval + cited answer)")
+    from netracare.agents.router import Router
+    from netracare.rag.answer import AnswerGenerator
+    from netracare.rag.ingest import build_components
+    from netracare.rag.retriever import RetrievalFilters, RetrievalIndex
+
+    embedder, store = build_components(settings)
+    index = RetrievalIndex(factory, embedder, store, None, settings).load()
+    check(index.vectors_ok, f"vector index in sync ({len(index)} chunks)")
+    route = Router(llm, index.doctors).route("how much is lasic?")
+    print(
+        f"     router: {route.intent.value} conf={route.confidence:.2f}"
+        f" -> {route.standalone_query!r}"
+    )
+    check(route.intent.value == "pricing", "router intent pricing")
+    retrieval = index.retrieve(
+        route.standalone_query, RetrievalFilters(boost_doc_types=("price_list",))
+    )
+    print(
+        f"     retrieval: confidence {retrieval.confidence:.3f}"
+        f" ({retrieval.mode}, {retrieval.latency_ms}ms)"
+    )
+    check(retrieval.confidence >= settings.rag_min_confidence, "above the answer threshold")
+    answer = AnswerGenerator(llm, purpose="smoke").generate(route.standalone_query, retrieval)
+    print(f"     answer ({answer.mode}): {answer.text}")
+    check(answer.mode == "llm" and bool(answer.citations), "cited LLM answer passed post-checks")
+    check("52,000" in answer.text and "45,000" not in answer.text, "current LASIK price only")
+
+    print("6. usage rows")
     with factory() as s:
         after = s.scalar(select(func.count()).select_from(LLMCall)) or 0
         last = s.scalars(select(LLMCall).order_by(LLMCall.at_utc.desc()).limit(1)).one()
-    check(after - before >= 5, f"{after - before} llm_calls rows written")
+    check(after - before >= 7, f"{after - before} llm_calls rows written")
     check(last.output_tokens > 0 and last.cost_usd > 0, "tokens and cost recorded")
     if tracing:
         flush_tracing()

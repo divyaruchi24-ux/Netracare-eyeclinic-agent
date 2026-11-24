@@ -33,3 +33,6 @@ Thumbs.db
 
 # Eval run reports (baselines live in evals/baselines and ARE committed)
 /reports/
+
+# Downloaded embedding / reranker models (fastembed cache)
+/models/

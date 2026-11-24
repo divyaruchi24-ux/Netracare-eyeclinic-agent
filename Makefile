@@ -1,4 +1,4 @@
-.PHONY: install lint fmt type test check migrate seed api ui evals evals-upload evals-live groq-smoke requirements
+.PHONY: install lint fmt type test check migrate seed reseed models ingest api ui evals evals-upload evals-live groq-smoke requirements
 
 install:
 	uv sync
@@ -25,6 +25,16 @@ migrate:
 seed:
 	uv run python -m netracare.seed --summary
 
+reseed:
+	uv run python -m netracare.seed --reset --summary
+	uv run python -m netracare.rag.ingest --force
+
+models:
+	uv run python -m netracare.rag.models download
+
+ingest:
+	uv run python -m netracare.rag.ingest
+
 api:
 	uv run uvicorn --factory netracare.api.main:app_factory --reload --port 8000
 
@@ -40,6 +50,8 @@ evals-upload:
 evals-live:
 	uv run python -m netracare.evals run safety_redflags_llm --live --upload
 	uv run python -m netracare.evals run visit_summary_live --live --upload
+	uv run python -m netracare.evals run router_llm --live --upload
+	uv run python -m netracare.evals run rag_answer_live --live --upload
 
 groq-smoke:
 	uv run python scripts/groq_smoke.py

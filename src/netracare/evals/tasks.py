@@ -7,6 +7,9 @@
 * `eye_fact_safety` - the eye-fact advice filter on adversarial candidates.
 * `visit_summary_v0` - faithfulness flags on canned drafts (offline); `visit_summary_live`
   drafts with Groq and expects no invented content (`--live` only).
+* `router_rules` / `router_llm` - the chat intent router (layer 1 offline gate; full router live).
+* `rag_retrieval` - the hybrid retriever over the real KB with the real embedding models
+  (offline, no LLM; CI gate: recall@5, no superseded chunk, out-of-KB refusal).
 """
 
 from __future__ import annotations
@@ -21,14 +24,28 @@ from typing import Any
 from netracare.domain.enums import AppointmentType, RedFlagLevel
 from netracare.domain.policies import BookingContext, requires_approval, should_flag_for_no_shows
 from netracare.evals.metrics import (
+    MRR,
+    AnsweredWithExpectedSource,
+    CitationValid,
     CodeHit,
     ExactMatch,
+    ExpectedText,
+    InKbAnswerable,
     LabelRecall,
     Metric,
+    NoAdvice,
     NoneFlagged,
+    NoSupersededLeak,
+    NumbersGrounded,
+    OutOfKbRefusal,
+    RecallAtK,
+    RefusedWhenExpected,
     SetEquality,
+    StandaloneContains,
     UnderTriage,
 )
+from netracare.evals.rag_tasks import rag_answer_live_task, rag_retrieval_task
+from netracare.evals.router_tasks import router_llm_task, router_rules_task
 
 Task = Callable[[dict[str, Any]], dict[str, Any]]
 _EVAL_NOW = datetime(2026, 11, 10, 3, 30, tzinfo=UTC)
@@ -180,6 +197,8 @@ class EvalSuite:
     metrics: list[Metric] = field(default_factory=list)
     description: str = ""
     requires_live: bool = False  # calls a real LLM: only with `--live`
+    requires_models: bool = False  # loads the fastembed models (offline; CI caches them)
+    confusion: bool = False  # add an intent confusion matrix to the report's `extra`
     prompts: tuple[str, ...] = ()  # prompt ids whose versions go in the run metadata
 
 
@@ -232,5 +251,58 @@ SUITES: dict[str, EvalSuite] = {
         description="Live Groq drafts from the same notes: no invented content",
         requires_live=True,
         prompts=("visit_summary", "json_repair"),
+    ),
+    "rag_retrieval": EvalSuite(
+        dataset="rag_retrieval_v0",
+        task=rag_retrieval_task,
+        metrics=[
+            RecallAtK(1),
+            RecallAtK(3),
+            RecallAtK(5),
+            MRR(),
+            NoSupersededLeak(),
+            OutOfKbRefusal(),
+            InKbAnswerable(),
+        ],
+        description="Hybrid retrieval over kb/: recall@k, MRR, no superseded chunks, "
+        "out-of-KB refusal",
+        requires_models=True,
+    ),
+    "rag_answer_live": EvalSuite(
+        dataset="rag_answer_live_v0",
+        task=rag_answer_live_task,
+        metrics=[
+            NoAdvice(),
+            NumbersGrounded(),
+            CitationValid(),
+            AnsweredWithExpectedSource(),
+            RefusedWhenExpected(),
+            ExpectedText(),
+        ],
+        description="Full chat turn on Groq: cited, grounded answers; refusals; latest prices",
+        requires_live=True,
+        requires_models=True,
+        prompts=("intent_router", "chat_answer", "red_flag_classifier", "json_repair"),
+    ),
+    "router_rules": EvalSuite(
+        dataset="router_rules_v0",
+        task=router_rules_task,
+        metrics=[ExactMatch("intent"), LabelRecall("intent", "emergency")],
+        description="Chat router layer 1 (no LLM); gate: emergency recall 1.0, exact intent 1.0",
+        confusion=True,
+    ),
+    "router_llm": EvalSuite(
+        dataset="router_llm_v0",
+        task=router_llm_task,
+        metrics=[
+            ExactMatch("intent"),
+            LabelRecall("intent", "emergency"),
+            LabelRecall("intent", "medical_question"),
+            StandaloneContains(),
+        ],
+        description="Full chat router (layer 1 + live Groq); target intent accuracy >= 0.85",
+        requires_live=True,
+        prompts=("intent_router", "json_repair"),
+        confusion=True,
     ),
 }

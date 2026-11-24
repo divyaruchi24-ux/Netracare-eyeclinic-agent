@@ -152,3 +152,61 @@ def test_one_eye_fact_per_day(session: Session) -> None:
     session.add(EyeFact(day=T0.date(), topic="t", text="y", source="static"))
     with pytest.raises(IntegrityError):
         session.flush()
+
+
+def _kb_doc(session: Session) -> str:
+    from netracare.db.models import KnowledgeDoc
+    from netracare.domain.enums import DocType
+
+    doc = KnowledgeDoc(
+        slug="s",
+        title="t",
+        doc_type=DocType.GENERAL_FAQ,
+        version=1,
+        effective_date=T0.date(),
+        source_path="kb/s.md",
+        checksum="c",
+    )
+    session.add(doc)
+    session.flush()
+    return doc.id
+
+
+def _chunk(doc_id: str, chunk_id: str, ordinal: int) -> object:
+    from netracare.db.models import KbChunk
+    from netracare.domain.enums import DocType
+
+    return KbChunk(
+        id=chunk_id,
+        doc_id=doc_id,
+        ordinal=ordinal,
+        heading_path="H",
+        text="x",
+        embed_text="x",
+        token_count=1,
+        doc_type=DocType.GENERAL_FAQ,
+        slug="s",
+        title="t",
+        version=1,
+        effective_date=T0.date(),
+        checksum="c",
+    )
+
+
+def test_chunk_unique_per_doc_ordinal(session: Session) -> None:
+    doc_id = _kb_doc(session)
+    session.add(_chunk(doc_id, "a" * 32, 0))
+    session.flush()
+    session.add(_chunk(doc_id, "b" * 32, 0))
+    with pytest.raises(IntegrityError):
+        session.flush()
+
+
+def test_anon_token_hash_unique(session: Session) -> None:
+    from netracare.db.models import ChatSession
+
+    session.add(ChatSession(anon_token_hash="h" * 64))
+    session.flush()
+    session.add(ChatSession(anon_token_hash="h" * 64))
+    with pytest.raises(IntegrityError):
+        session.flush()

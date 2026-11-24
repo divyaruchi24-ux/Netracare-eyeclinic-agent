@@ -1,0 +1,65 @@
+{"id": "rl-001", "input": {"message": "what are your opening hours"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-002", "input": {"message": "is there parking at the clinic"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-003", "input": {"message": "what should I bring to my first visit"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-004", "input": {"message": "do I need a referral"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-005", "input": {"message": "how long does a dilated eye exam take"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-006", "input": {"message": "do I need a driver after dilation"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-007", "input": {"message": "how do I prepare for glaucoma screening"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-008", "input": {"message": "what happens at a dry eye clinic visit"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-009", "input": {"message": "which insurance companies do you accept"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-010", "input": {"message": "can I pay with UPI"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-011", "input": {"message": "what is your cancellation policy"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-012", "input": {"message": "how do you use my personal data"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-013", "input": {"message": "what lens options are there for cataract surgery"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-014", "input": {"message": "is LASIK covered by insurance"}, "expected": {"intent": "faq_rag"}, "tags": ["faq"]}
+{"id": "rl-015", "input": {"message": "How much is LASIK?"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-016", "input": {"message": "lasik ka price kitna hai"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-017", "input": {"message": "what does a pediatric eye exam cost"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-018", "input": {"message": "fees for diabetic eye screening"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-019", "input": {"message": "how much for cataract surgery with a toric lens"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-020", "input": {"message": "is the follow-up consultation free"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-021", "input": {"message": "price of SMILE vs LASIK"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-022", "input": {"message": "how expensive is the glaucoma screening package"}, "expected": {"intent": "pricing"}, "tags": ["pricing"]}
+{"id": "rl-023", "input": {"message": "Dr Shetti timings"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-024", "input": {"message": "which days does Dr. Meera Iyer see patients"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-025", "input": {"message": "what languages does Dr Kavya Nair speak"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-026", "input": {"message": "who is your cornea specialist"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-027", "input": {"message": "tell me about Dr. Arjun Menon"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-028", "input": {"message": "which doctor does LASIK"}, "expected": {"intent": "doctor_lookup"}, "tags": ["doctor"]}
+{"id": "rl-029", "input": {"message": "I'd like to book an appointment next Tuesday"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-030", "input": {"message": "can I come in tomorrow morning?"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-031", "input": {"message": "book me with Dr. Rao"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-032", "input": {"message": "I need to reschedule my appointment"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-033", "input": {"message": "cancel my appointment on Friday"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-034", "input": {"message": "is there a slot available this Saturday"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-035", "input": {"message": "My 6 year old needs a routine eye check-up, can I book?"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-036", "input": {"message": "yes please book it"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-037", "input": {"message": "can I see a doctor this week for a check-up"}, "expected": {"intent": "booking"}, "tags": ["booking"]}
+{"id": "rl-038", "input": {"message": "what could cause my eyes to be red every morning?"}, "expected": {"intent": "medical_question"}, "tags": ["medical"]}
+{"id": "rl-039", "input": {"message": "is it normal for my vision to be blurry after reading?"}, "expected": {"intent": "medical_question"}, "tags": ["medical"]}
+{"id": "rl-040", "input": {"message": "should I use warm compresses for my eyelid bump?"}, "expected": {"intent": "medical_question"}, "tags": ["medical"]}
+{"id": "rl-041", "input": {"message": "can you tell me what my symptoms mean"}, "expected": {"intent": "medical_question"}, "tags": ["medical"]}
+{"id": "rl-042", "input": {"message": "which glasses power do I need"}, "expected": {"intent": "medical_question"}, "tags": ["medical"]}
+{"id": "rl-043", "input": {"message": "my eye got hit hard and now I can't open it"}, "expected": {"intent": "emergency"}, "tags": ["emergency"]}
+{"id": "rl-044", "input": {"message": "there's a dark shadow spreading across my vision"}, "expected": {"intent": "emergency"}, "tags": ["emergency"]}
+{"id": "rl-045", "input": {"message": "something metal flew into my eye while grinding"}, "expected": {"intent": "emergency"}, "tags": ["emergency"]}
+{"id": "rl-046", "input": {"message": "this bot is useless, get me someone"}, "expected": {"intent": "human_handoff"}, "tags": ["human"]}
+{"id": "rl-047", "input": {"message": "I'd rather talk to your staff"}, "expected": {"intent": "human_handoff"}, "tags": ["human"]}
+{"id": "rl-048", "input": {"message": "please have the clinic phone me"}, "expected": {"intent": "human_handoff"}, "tags": ["human"]}
+{"id": "rl-049", "input": {"message": "hi there, how are you?"}, "expected": {"intent": "chit_chat"}, "tags": ["chit_chat"]}
+{"id": "rl-050", "input": {"message": "you're very helpful, thanks!"}, "expected": {"intent": "chit_chat"}, "tags": ["chit_chat"]}
+{"id": "rl-051", "input": {"message": "good evening netracare"}, "expected": {"intent": "chit_chat"}, "tags": ["chit_chat"]}
+{"id": "rl-052", "input": {"message": "what can you do?"}, "expected": {"intent": "chit_chat"}, "tags": ["chit_chat"]}
+{"id": "rl-053", "input": {"message": "what's the weather in Bengaluru today"}, "expected": {"intent": "off_topic"}, "tags": ["off_topic"]}
+{"id": "rl-054", "input": {"message": "who won the cricket match yesterday"}, "expected": {"intent": "off_topic"}, "tags": ["off_topic"]}
+{"id": "rl-055", "input": {"message": "write me a poem about cats"}, "expected": {"intent": "off_topic"}, "tags": ["off_topic"]}
+{"id": "rl-056", "input": {"message": "what is the capital of France"}, "expected": {"intent": "off_topic"}, "tags": ["off_topic"]}
+{"id": "rl-057", "input": {"message": "recommend a good restaurant nearby"}, "expected": {"intent": "off_topic"}, "tags": ["off_topic"]}
+{"id": "rl-058", "input": {"message": "and how much is it?", "history": "user: Tell me about LASIK\nassistant: LASIK is a laser procedure ... [1]"}, "expected": {"intent": "pricing", "standalone_contains": "lasik"}, "tags": ["followup"]}
+{"id": "rl-059", "input": {"message": "is it covered by insurance?", "history": "user: what lens options are there for cataract surgery?\nassistant: We offer monofocal, toric and multifocal lenses [1]."}, "expected": {"intent": "faq_rag", "standalone_contains": "cataract"}, "tags": ["followup"]}
+{"id": "rl-060", "input": {"message": "which days is she available?", "history": "user: who does cataract surgery?\nassistant: Dr. Kavya Nair handles cataract surgery [1]."}, "expected": {"intent": "doctor_lookup", "standalone_contains": "nair"}, "tags": ["followup"]}
+{"id": "rl-061", "input": {"message": "ok book me with him", "history": "user: who treats floaters?\nassistant: Concerns about new floaters are typically seen by our Retina specialist, Dr. Vikram Shetty."}, "expected": {"intent": "booking", "standalone_contains": "shetty"}, "tags": ["followup"]}
+{"id": "rl-062", "input": {"message": "what about for children?", "history": "user: how much is a comprehensive eye check-up?\nassistant: A new-patient check-up is 900 rupees [1]."}, "expected": {"intent": "pricing", "standalone_contains": "child"}, "tags": ["followup"]}
+{"id": "rl-063", "input": {"message": "can I bring my mother along to the appointment?"}, "expected": {"intent": "faq_rag"}, "tags": ["rf-026"]}
+{"id": "rl-064", "input": {"message": "hi, I want an appointment for my dad, he's 70"}, "expected": {"intent": "booking"}, "tags": ["rf-026", "booking"]}
+{"id": "rl-065", "input": {"message": "do you have evening appointments?"}, "expected": {"intent": "faq_rag"}, "tags": ["rf-026"]}

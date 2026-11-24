@@ -45,6 +45,7 @@ class ExperimentReport:
     cases: list[CaseResult] = field(default_factory=list)
     scored: bool = True
     opik_experiment: str | None = None
+    extra: dict[str, Any] = field(default_factory=dict)
 
     def to_json(self) -> dict[str, Any]:
         return asdict(self)
@@ -163,6 +164,13 @@ def run_suite(
         report = ExperimentReport(
             name, exp_name, dataset.version, len(dataset), means, metadata, failures, cases
         )
+        if suite.confusion:
+            from netracare.evals.metrics import confusion_matrix
+
+            expected = {c.id: str(c.expected.get("intent")) for c in dataset.cases}
+            report.extra["confusion_matrix"] = confusion_matrix(
+                [(expected[c.id], str(c.output.get("intent", "error"))) for c in cases]
+            )
         if upload:
             report.opik_experiment = upload_to_opik(suite, dataset, report, settings)
     if write_report:

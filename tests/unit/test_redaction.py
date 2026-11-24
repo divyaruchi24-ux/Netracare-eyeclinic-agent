@@ -18,3 +18,13 @@ def test_redact_all_combines_names_email_phone() -> None:
     out = redact_all("Ravi at ravi@example.com or +91 98450 12345", ["Ravi Kumar"])
     assert out == "the patient at [EMAIL] or [PHONE]"
     assert redact_all("plain", ()) == "plain"
+
+
+def test_identifiers_are_not_mistaken_for_phone_numbers() -> None:
+    from netracare.log import _redact_strings, redact
+
+    uuid_like = "d656e8b9-3cb5-47d8-ad1d-c123456789012"
+    assert redact(uuid_like) == uuid_like
+    assert redact("call 9876543210 now") == "call [PHONE] now"
+    out = _redact_strings(None, "", {"request_id": "x 9876543210", "msg": "x 9876543210"})
+    assert out["request_id"] == "x 9876543210" and out["msg"] == "x [PHONE]"

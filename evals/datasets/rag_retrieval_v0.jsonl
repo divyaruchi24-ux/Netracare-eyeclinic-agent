@@ -1,0 +1,56 @@
+{"id": "rr-001", "input": {"query": "How much is LASIK?"}, "expected": {"slugs": ["price-list", "procedure-lasik"]}, "tags": ["pricing"]}
+{"id": "rr-002", "input": {"query": "how much is lasic?"}, "expected": {"slugs": ["price-list", "procedure-lasik"]}, "tags": ["pricing", "typo"]}
+{"id": "rr-003", "input": {"query": "What does cataract surgery with a toric lens cost?"}, "expected": {"slugs": ["price-list"]}, "tags": ["pricing"]}
+{"id": "rr-004", "input": {"query": "fees for my child's eye test"}, "expected": {"slugs": ["price-list", "dr-arjun-menon"]}, "tags": ["pricing", "pediatric"]}
+{"id": "rr-005", "input": {"query": "lasik ka price kitna hai"}, "expected": {"slugs": ["price-list", "procedure-lasik"]}, "tags": ["pricing", "hinglish"]}
+{"id": "rr-006", "input": {"query": "SMILE surgery price for both eyes"}, "expected": {"slugs": ["price-list", "procedure-lasik"]}, "tags": ["pricing"]}
+{"id": "rr-007", "input": {"query": "what is the charge for a follow-up consultation"}, "expected": {"slugs": ["price-list"]}, "tags": ["pricing"]}
+{"id": "rr-008", "input": {"query": "glaucoma screening package cost"}, "expected": {"slugs": ["price-list", "procedure-glaucoma-screening"]}, "tags": ["pricing"]}
+{"id": "rr-009", "input": {"query": "Is LASIK still 45,000 rupees?"}, "expected": {"slugs": ["price-list", "procedure-lasik"]}, "tags": ["pricing", "price_conflict"]}
+{"id": "rr-010", "input": {"query": "what did the 2025 price list say for an eye check-up"}, "expected": {"slugs": ["price-list"]}, "tags": ["pricing", "price_conflict"]}
+{"id": "rr-011", "input": {"query": "has the new patient check-up price gone up"}, "expected": {"slugs": ["price-list"]}, "tags": ["pricing", "price_conflict"]}
+{"id": "rr-012", "input": {"query": "Dr Shetti timings"}, "expected": {"slugs": ["dr-vikram-shetty"]}, "tags": ["doctor", "typo"]}
+{"id": "rr-013", "input": {"query": "which days is Dr. Meera Iyer available"}, "expected": {"slugs": ["dr-meera-iyer"]}, "tags": ["doctor"]}
+{"id": "rr-014", "input": {"query": "who treats squint in children"}, "expected": {"slugs": ["dr-arjun-menon", "procedure-squint-evaluation"]}, "tags": ["doctor", "pediatric"]}
+{"id": "rr-015", "input": {"query": "which doctor should I see for dry eyes"}, "expected": {"slugs": ["procedure-dry-eye", "dr-ananya-rao"]}, "tags": ["doctor"]}
+{"id": "rr-016", "input": {"query": "what languages does Dr Kavya speak"}, "expected": {"slugs": ["dr-kavya-nair"]}, "tags": ["doctor"]}
+{"id": "rr-017", "input": {"query": "doctor for a diabetic eye check"}, "expected": {"slugs": ["procedure-diabetic-eye-screening", "dr-vikram-shetty"]}, "tags": ["doctor"]}
+{"id": "rr-018", "input": {"query": "who does LASIK here"}, "expected": {"slugs": ["procedure-lasik", "dr-ananya-rao"]}, "tags": ["doctor"]}
+{"id": "rr-019", "input": {"query": "doctor menen OPD days"}, "expected": {"slugs": ["dr-arjun-menon"]}, "tags": ["doctor", "typo"]}
+{"id": "rr-020", "input": {"query": "I have a droopy eyelid, who should I see"}, "expected": {"slugs": ["procedure-ptosis", "dr-kavya-nair"]}, "tags": ["doctor"]}
+{"id": "rr-021", "input": {"query": "do I need someone to drive me home after dilating drops"}, "expected": {"slugs": ["prep-dilation", "procedure-dilated-exam"]}, "tags": ["prep"]}
+{"id": "rr-022", "input": {"query": "when should I stop wearing contact lenses before the lasik evaluation"}, "expected": {"slugs": ["prep-contact-lens-pause", "procedure-lasik"]}, "tags": ["prep"]}
+{"id": "rr-023", "input": {"query": "do I have to fast before cataract surgery"}, "expected": {"slugs": ["prep-surgery", "procedure-cataract"]}, "tags": ["prep"]}
+{"id": "rr-024", "input": {"query": "what should I bring to my appointment"}, "expected": {"slugs": ["clinic-faq-general"]}, "tags": ["prep"]}
+{"id": "rr-025", "input": {"query": "how long does a dilated eye exam take"}, "expected": {"slugs": ["procedure-dilated-exam", "prep-dilation"]}, "tags": ["prep"]}
+{"id": "rr-026", "input": {"query": "how to prepare for glaucoma screening"}, "expected": {"slugs": ["procedure-glaucoma-screening"]}, "tags": ["prep"]}
+{"id": "rr-027", "input": {"query": "Is LASIK covered by insurance?"}, "expected": {"slugs": ["accepted-insurance", "procedure-lasik"]}, "tags": ["insurance"]}
+{"id": "rr-028", "input": {"query": "which insurance companies do you work with"}, "expected": {"slugs": ["accepted-insurance"]}, "tags": ["insurance"]}
+{"id": "rr-029", "input": {"query": "how long does cashless pre-authorisation take"}, "expected": {"slugs": ["accepted-insurance"]}, "tags": ["insurance"]}
+{"id": "rr-030", "input": {"query": "can I pay by UPI or EMI"}, "expected": {"slugs": ["accepted-insurance"]}, "tags": ["insurance"]}
+{"id": "rr-031", "input": {"query": "insurence for catract surgery"}, "expected": {"slugs": ["accepted-insurance", "procedure-cataract"]}, "tags": ["insurance", "typo"]}
+{"id": "rr-032", "input": {"query": "can I cancel my appointment tomorrow morning"}, "expected": {"slugs": ["policy-cancellation"]}, "tags": ["policy"]}
+{"id": "rr-033", "input": {"query": "what happens if I miss three appointments"}, "expected": {"slugs": ["policy-cancellation"]}, "tags": ["policy"]}
+{"id": "rr-034", "input": {"query": "how do you use my personal data"}, "expected": {"slugs": ["policy-privacy"]}, "tags": ["policy"]}
+{"id": "rr-035", "input": {"query": "how do I reschedule a visit"}, "expected": {"slugs": ["policy-cancellation"]}, "tags": ["policy"]}
+{"id": "rr-036", "input": {"query": "do I need a referral letter"}, "expected": {"slugs": ["clinic-faq-general"]}, "tags": ["policy"]}
+{"id": "rr-037", "input": {"query": "what are your opening hours"}, "expected": {"slugs": ["clinic-hours-location"]}, "tags": ["clinic"]}
+{"id": "rr-038", "input": {"query": "are you open on Sunday"}, "expected": {"slugs": ["clinic-hours-location"]}, "tags": ["clinic"]}
+{"id": "rr-039", "input": {"query": "is there parking at the clinic"}, "expected": {"slugs": ["clinic-hours-location"]}, "tags": ["clinic"]}
+{"id": "rr-040", "input": {"query": "where is the clinic located"}, "expected": {"slugs": ["clinic-hours-location"]}, "tags": ["clinic"]}
+{"id": "rr-041", "input": {"query": "is the clinic wheelchair accessible"}, "expected": {"slugs": ["clinic-hours-location"]}, "tags": ["clinic"]}
+{"id": "rr-042", "input": {"query": "what is glaucoma screening"}, "expected": {"slugs": ["procedure-glaucoma-screening"]}, "tags": ["procedure"]}
+{"id": "rr-043", "input": {"query": "what lens options are there for cataract surgery"}, "expected": {"slugs": ["procedure-cataract"]}, "tags": ["procedure"]}
+{"id": "rr-044", "input": {"query": "what happens at a dry eye clinic visit"}, "expected": {"slugs": ["procedure-dry-eye"]}, "tags": ["procedure"]}
+{"id": "rr-045", "input": {"query": "glacoma test preparation"}, "expected": {"slugs": ["procedure-glaucoma-screening"]}, "tags": ["procedure", "typo"]}
+{"id": "rr-046", "input": {"query": "how long does the diabetic eye screening take"}, "expected": {"slugs": ["procedure-diabetic-eye-screening"]}, "tags": ["procedure"]}
+{"id": "rr-047", "input": {"query": "Do you offer hair transplants?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-048", "input": {"query": "What's the weather in Bengaluru today?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-049", "input": {"query": "How much does a dental cleaning cost?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-050", "input": {"query": "Can I get a COVID vaccine here?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-051", "input": {"query": "Who won the cricket match yesterday?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-052", "input": {"query": "What is the price of a knee replacement?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-053", "input": {"query": "Can you recommend a good restaurant nearby?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-054", "input": {"query": "How do I reset my net banking password?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-055", "input": {"query": "Do you do cosmetic botox injections for wrinkles?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}
+{"id": "rr-056", "input": {"query": "What is the capital of France?"}, "expected": {"refuse": true}, "tags": ["out_of_kb"]}

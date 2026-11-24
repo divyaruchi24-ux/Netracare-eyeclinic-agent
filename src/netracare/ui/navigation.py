@@ -18,6 +18,12 @@ LOGIN = PageSpec("login.py", "Sign in", ":material/login:", "Sign in to manage a
 REGISTER = PageSpec(
     "register.py", "Register", ":material/person_add:", "Create a patient account (18+)."
 )
+CHAT = PageSpec(
+    "chat.py",
+    "Ask NetraCare",
+    ":material/chat:",
+    "Questions about the clinic, answered from our own information with sources.",
+)
 MESSAGES = PageSpec(
     "notifications.py", "Messages", ":material/sms:", "Simulated SMS and email notifications."
 )
@@ -42,6 +48,7 @@ PATIENT = [
         ":material/health_and_safety:",
         "Tell us what is going on; we point you to the right care. Not medical advice.",
     ),
+    CHAT,
     MESSAGES,
 ]
 DOCTOR = [
@@ -72,6 +79,12 @@ FRONT_DESK = [
         "Alerts",
         ":material/emergency:",
         "Red-flag symptom alerts: emergencies first; acknowledge and resolve.",
+    ),
+    PageSpec(
+        "frontdesk_handoffs.py",
+        "Chat handoffs",
+        ":material/support_agent:",
+        "Conversations the assistant handed over: claim, call back and close.",
     ),
     PageSpec(
         "frontdesk_approvals.py",
@@ -113,12 +126,18 @@ ADMIN = [
         ":material/monitoring:",
         "LLM calls, tokens and cost against the daily and monthly budget.",
     ),
+    PageSpec(
+        "admin_kb.py",
+        "Knowledge base",
+        ":material/library_books:",
+        "Documents, chunks and the search index; re-index and debug retrieval.",
+    ),
 ]
 
 
 def pages_for(role: str | None) -> dict[str, list[PageSpec]]:
     if role is None:
-        return {"": [LOGIN, REGISTER]}
+        return {"": [LOGIN, REGISTER, CHAT]}
     if role == "patient":
         return {"": PATIENT}
     if role == "doctor":

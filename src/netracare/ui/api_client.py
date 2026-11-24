@@ -14,6 +14,9 @@ from typing import Any, Protocol
 
 import requests
 
+CHAT_TIMEOUT_S = 90.0  # a turn may run router + triage + answer LLM calls
+REINDEX_TIMEOUT_S = 600.0  # embedding the whole KB on a laptop CPU takes about a minute
+
 
 class _Response(Protocol):
     status_code: int
@@ -54,6 +57,7 @@ class ApiClient:
     access_token: str | None = None
     refresh_token: str | None = None
     me: dict[str, Any] | None = None
+    chat_tokens: dict[str, str] = field(default_factory=dict)  # anonymous chat session tokens
 
     # -- session -----------------------------------------------------------------------------
     @property
@@ -117,6 +121,7 @@ class ApiClient:
         params: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
         auth: bool = True,
+        timeout: float | None = None,
         _retry: bool = True,
     ) -> Any:
         hdrs = dict(headers or {})
@@ -124,7 +129,9 @@ class ApiClient:
             hdrs["Authorization"] = f"Bearer {self.access_token}"
         clean = {k: v for k, v in (params or {}).items() if v not in (None, "")}
         try:
-            extra = {"timeout": self.timeout} if self.timeout is not None else {}
+            # timeout=None on the client means "the transport decides" (tests): keep it so.
+            wait = None if self.timeout is None else (timeout or self.timeout)
+            extra = {"timeout": wait} if wait is not None else {}
             resp: _Response = self.http.request(
                 method,
                 self.base_url.rstrip("/") + path,
@@ -137,7 +144,14 @@ class ApiClient:
             raise ApiError(0, "api_unreachable", "the clinic server is not reachable") from exc
         if resp.status_code == 401 and auth and _retry and self.refresh():
             return self.request(
-                method, path, json=json, params=params, headers=headers, auth=auth, _retry=False
+                method,
+                path,
+                json=json,
+                params=params,
+                headers=headers,
+                auth=auth,
+                timeout=timeout,
+                _retry=False,
             )
         if resp.status_code == 204:
             return None
@@ -170,6 +184,42 @@ class ApiClient:
 
     def delete(self, path: str) -> Any:
         return self.request("DELETE", path)
+
+    # -- chat (Phase 3) ------------------------------------------------------------------------
+    def _chat_headers(self, session_id: str) -> dict[str, str] | None:
+        token = self.chat_tokens.get(session_id)
+        return {"X-Chat-Token": token} if token else None
+
+    def chat_create(self) -> dict[str, Any]:
+        body: dict[str, Any] = self.request("POST", "/chat/sessions", json={})
+        if body.get("session_token"):
+            self.chat_tokens[body["id"]] = body["session_token"]
+        return body
+
+    def chat_get(self, session_id: str) -> dict[str, Any]:
+        body: dict[str, Any] = self.request(
+            "GET", f"/chat/sessions/{session_id}", headers=self._chat_headers(session_id)
+        )
+        return body
+
+    def chat_send(self, session_id: str, text: str) -> dict[str, Any]:
+        body: dict[str, Any] = self.request(
+            "POST",
+            f"/chat/sessions/{session_id}/messages",
+            json={"text": text},
+            headers=self._chat_headers(session_id),
+            timeout=CHAT_TIMEOUT_S,
+        )
+        return body
+
+    def chat_handoff(self, session_id: str) -> dict[str, Any]:
+        body: dict[str, Any] = self.request(
+            "POST",
+            f"/chat/sessions/{session_id}/handoff",
+            json={},
+            headers=self._chat_headers(session_id),
+        )
+        return body
 
 
 def new_idempotency_key() -> str:

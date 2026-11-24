@@ -21,6 +21,8 @@ from netracare.llm.prompts import PromptRegistry
 from netracare.llm.providers import LLMProvider
 from netracare.log import configure_logging
 from netracare.observability.tracing import configure_tracing
+from netracare.rag.embeddings import Embedder, Reranker
+from netracare.rag.vector_store import VectorStore
 from netracare.security.rate_limit import LoginThrottle, SlidingWindowLimiter
 
 
@@ -30,6 +32,9 @@ def create_app(
     clock: Clock | None = None,
     engine: Engine | None = None,
     llm_provider: LLMProvider | None = None,
+    embedder: Embedder | None = None,
+    vector_store: VectorStore | None = None,
+    reranker: Reranker | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     assert_safe_secrets(settings)
@@ -52,6 +57,17 @@ def create_app(
     app.state.pricing = Pricing.load(settings.pricing_file)
     app.state.triage_limiter = SlidingWindowLimiter(
         settings.triage_rate_limit_per_min, timedelta(minutes=1)
+    )
+    # RAG: injected components (tests) or fastembed + Chroma built on first chat request.
+    app.state.rag_embedder = embedder
+    app.state.rag_store = vector_store
+    app.state.rag_reranker = reranker
+    app.state.retrieval_index = None
+    app.state.chat_limiter = SlidingWindowLimiter(
+        settings.chat_rate_limit_per_min, timedelta(minutes=1)
+    )
+    app.state.chat_anon_limiter = SlidingWindowLimiter(
+        settings.chat_anon_rate_limit_per_min, timedelta(minutes=1)
     )
 
     app.add_middleware(

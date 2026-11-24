@@ -243,3 +243,57 @@ def test_llm_cannot_downgrade_clinical_text_to_non_clinical(make_svc: MakeSvc) -
     )
     assert r.level is L.ROUTINE and r.is_medical_question
     assert r.message.startswith("I'm not able to give medical advice about")
+
+
+# -- Phase 3: alert dedup, min level, doctor lookup ---------------------------------------
+
+
+def test_same_dedup_key_reuses_the_open_alert(
+    make_svc: MakeSvc, db: Session, clock: MutableClock
+) -> None:
+    from datetime import timedelta
+
+    from netracare.services.triage_service import alert_dedup_key
+
+    svc, _ = make_svc(llm=False)
+    key = alert_dedup_key("chat:abc", ["E4"])
+    first = svc.classify("bleach in my eye", dedup_key=key)
+    second = svc.classify("bleach in my eye!!", dedup_key=key)
+    assert first.alert_id and second.alert_id == first.alert_id
+    assert second.meta["alert_deduplicated"] is True
+    other = svc.classify("bleach in my eye", dedup_key=alert_dedup_key("chat:xyz", ["E4"]))
+    assert other.alert_id != first.alert_id
+    clock.advance(timedelta(minutes=11))  # outside the dedup window -> a new alert
+    later = svc.classify("bleach in my eye", dedup_key=key)
+    assert later.alert_id not in (first.alert_id, other.alert_id)
+    db.commit()
+    assert len(list(db.scalars(select(TriageAlert)))) == 3
+
+
+def test_acknowledged_alert_is_not_reused(make_svc: MakeSvc, db: Session) -> None:
+    from netracare.domain.actor import CurrentUser
+    from netracare.domain.enums import Role
+    from netracare.services.triage_service import alert_dedup_key
+
+    svc, _ = make_svc(llm=False)
+    key = alert_dedup_key("patient:p1", ["E1"])
+    first = svc.classify("suddenly can't see from my left eye", dedup_key=key)
+    assert first.alert_id
+    svc.ack(CurrentUser("u", Role.FRONT_DESK, "e", "n"), first.alert_id)
+    again = svc.classify("suddenly can't see from my left eye", dedup_key=key)
+    assert again.alert_id != first.alert_id
+
+
+def test_min_level_floors_the_result(make_svc: MakeSvc) -> None:
+    svc, _ = make_svc(llm=False)
+    r = svc.classify("my eye feels a bit odd today", min_level=RedFlagLevel.URGENT)
+    assert r.level is RedFlagLevel.URGENT and r.message == scripts.URGENT_SCRIPT
+    assert r.alert_id is not None
+    no_lower = svc.classify("bleach in my eye", min_level=RedFlagLevel.URGENT)
+    assert no_lower.level is RedFlagLevel.EMERGENCY
+
+
+def test_doctor_for(make_svc: MakeSvc) -> None:
+    svc, _ = make_svc(llm=False)
+    assert svc.doctor_for("RETINA") == "Dr. Vikram Shetty"
+    assert svc.doctor_for(None) is None

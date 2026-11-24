@@ -1,0 +1,10 @@
+{
+  "suite": "router_rules",
+  "dataset_version": "6786ed6698f5",
+  "n_cases": 55,
+  "metrics": {
+    "exact_intent": 1.0,
+    "recall_intent_emergency": 1.0
+  },
+  "git_sha": "34bb2f8"
+}

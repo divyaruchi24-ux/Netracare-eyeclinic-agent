@@ -48,10 +48,43 @@ class VisitSummaryDraft(_Strict):
     unclear_in_notes: list[str]
 
 
+RouterIntent = Literal[
+    "faq_rag",
+    "doctor_lookup",
+    "pricing",
+    "booking",
+    "medical_question",
+    "emergency",
+    "human_handoff",
+    "chit_chat",
+    "off_topic",
+]
+
+
+class ChatAnswerOutput(_Strict):
+    """A KB-grounded answer. `citations` are the chunk numbers used; `answerable=false` when
+    the provided chunks do not answer the question (the app then hands off)."""
+
+    answer: str = Field(max_length=1200)
+    citations: list[int]
+    answerable: bool
+
+
+class RouterOutput(_Strict):
+    intent: RouterIntent
+    confidence: float = Field(ge=0, le=1)
+    standalone_query: str = Field(max_length=300)
+    specialty_hint: SpecialtyCode | None
+    doctor_mention: str | None = Field(max_length=80)
+    concern_phrase: str | None = Field(max_length=80)
+
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "TriageLLMOutput": TriageLLMOutput,
     "EyeFactOutput": EyeFactOutput,
     "VisitSummaryDraft": VisitSummaryDraft,
+    "ChatAnswerOutput": ChatAnswerOutput,
+    "RouterOutput": RouterOutput,
 }
 
 # Keywords strict mode (Groq / OpenAI structured outputs) does not accept.

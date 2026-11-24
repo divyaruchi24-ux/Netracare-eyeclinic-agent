@@ -85,6 +85,21 @@ ROUTES: dict[tuple[str, str], frozenset[str] | str] = {
     ("POST", "/appointments/{appointment_id}/visit-summary/approve"): frozenset({D}),
     ("POST", "/appointments/{appointment_id}/visit-summary/discard"): frozenset({D}),
     ("GET", "/admin/llm-usage"): ADMIN_ONLY,
+    # Phase 3: chat is public (ownership is enforced per session -> 404 for anyone else),
+    # KB citations are public clinic information, handoffs are staff, KB admin is admin.
+    ("POST", "/chat/sessions"): PUBLIC,
+    ("GET", "/chat/sessions/{session_id}"): PUBLIC,
+    ("POST", "/chat/sessions/{session_id}/messages"): PUBLIC,
+    ("POST", "/chat/sessions/{session_id}/handoff"): PUBLIC,
+    ("GET", "/chat/handoffs"): STAFF,
+    ("POST", "/chat/handoffs/{handoff_id}/claim"): STAFF,
+    ("POST", "/chat/handoffs/{handoff_id}/close"): STAFF,
+    ("GET", "/chat/handoffs/{handoff_id}/conversation"): STAFF,
+    ("GET", "/kb/chunks/{chunk_id}"): PUBLIC,
+    ("GET", "/kb/docs"): PUBLIC,
+    ("GET", "/admin/kb"): ADMIN_ONLY,
+    ("POST", "/admin/kb/reindex"): ADMIN_ONLY,
+    ("GET", "/admin/kb/search"): ADMIN_ONLY,
 }
 
 PATH_VALUES = {
@@ -97,6 +112,9 @@ PATH_VALUES = {
     "request_id": "no-such-request",
     "user_id": "no-such-user",
     "alert_id": "no-such-alert",
+    "session_id": "no-such-session",
+    "handoff_id": "no-such-handoff",
+    "chunk_id": "no-such-chunk",
 }
 CALLERS = ["anonymous", P, D, F, A]
 

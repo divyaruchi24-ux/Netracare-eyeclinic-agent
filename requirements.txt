@@ -3,7 +3,12 @@
 aiohappyeyeballs==2.7.1
     # via aiohttp
 aiohttp==3.14.5
-    # via litellm
+    # via
+    #   aiohttp-retry
+    #   kubernetes
+    #   litellm
+aiohttp-retry==2.9.1
+    # via kubernetes
 aiosignal==1.4.0
     # via aiohttp
 alembic==1.20.1
@@ -11,7 +16,9 @@ alembic==1.20.1
 altair==6.3.0
     # via streamlit
 annotated-doc==0.0.5
-    # via fastapi
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.8.0
     # via pydantic
 anyio==4.16.0
@@ -29,6 +36,8 @@ attrs==26.1.0
     #   aiohttp
     #   jsonschema
     #   referencing
+bcrypt==5.0.0
+    # via chromadb
 boto3==1.44.5
     # via litellm
 boto3-stubs==1.43.126
@@ -39,16 +48,21 @@ botocore==1.44.5
     #   s3transfer
 botocore-stubs==1.43.126
     # via boto3-stubs
+build==1.6.1
+    # via chromadb
 certifi==2026.10.23
     # via
     #   httpcore
     #   httpx
+    #   kubernetes
     #   langchain-core
     #   litellm
     #   requests
     #   sentry-sdk
 charset-normalizer==3.5.2
     # via requests
+chromadb==1.5.9
+    # via netracare
 click==8.5.1
     # via
     #   huggingface-hub
@@ -56,10 +70,13 @@ click==8.5.1
     #   opik
     #   streamlit
     #   uvicorn
-colorama==0.4.6 ; sys_platform == 'win32'
+colorama==0.4.6 ; os_name == 'nt' or sys_platform == 'win32'
     # via
+    #   build
+    #   loguru
     #   pytest
     #   tqdm
+    #   typer
 distro==1.9.0
     # via
     #   groq
@@ -67,11 +84,15 @@ distro==1.9.0
     #   openai
 dnspython==2.9.2
     # via email-validator
+durationpy==0.11
+    # via kubernetes
 email-validator==2.4.0
     # via netracare
 faker==40.52.0
     # via netracare
 fastapi==0.162.2
+    # via netracare
+fastembed==0.9.1
     # via netracare
 fastuuid==0.14.0
     # via litellm
@@ -79,14 +100,22 @@ filelock==3.32.7
     # via
     #   huggingface-hub
     #   litellm
+flatbuffers==25.12.19
+    # via onnxruntime
 frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
 fsspec==2026.9.0
     # via huggingface-hub
+googleapis-common-protos==1.76.0
+    # via opentelemetry-exporter-otlp-proto-grpc
 groq==1.7.0
     # via netracare
+grpcio==1.85.3
+    # via
+    #   chromadb
+    #   opentelemetry-exporter-otlp-proto-grpc
 h11==0.16.0
     # via
     #   httpcore
@@ -106,6 +135,7 @@ httptools==0.9.0
     # via uvicorn
 httpx==0.28.1
     # via
+    #   chromadb
     #   groq
     #   huggingface-hub
     #   langchain-core
@@ -118,6 +148,7 @@ httpx2-jsfetch==1.0 ; python_full_version >= '3.12' and sys_platform == 'emscrip
     # via httpx2
 huggingface-hub==1.33.0
     # via
+    #   fastembed
     #   litellm
     #   tokenizers
 hyperframe==6.1.0
@@ -132,6 +163,8 @@ idna==3.20
     #   yarl
 importlib-metadata==8.9.0
     # via litellm
+importlib-resources==7.1.0
+    # via chromadb
 iniconfig==2.3.1
     # via pytest
 itsdangerous==2.2.0
@@ -155,9 +188,12 @@ jsonpointer==3.12
 jsonschema==4.26.0
     # via
     #   altair
+    #   chromadb
     #   litellm
 jsonschema-specifications==2025.9.1
     # via jsonschema
+kubernetes==37.0.3
+    # via chromadb
 langchain-core==1.8.3
     # via netracare
 langchain-protocol==0.0.21
@@ -166,6 +202,8 @@ langsmith==0.15.0
     # via langchain-core
 litellm==1.105.7
     # via opik
+loguru==0.7.3
+    # via fastembed
 mako==1.4.3
     # via alembic
 markdown-it-py==4.3.0
@@ -176,6 +214,10 @@ markupsafe==3.0.4
     #   mako
 mdurl==0.1.2
     # via markdown-it-py
+mmh3==5.3.1
+    # via
+    #   chromadb
+    #   fastembed
 multidict==7.2.1
     # via
     #   aiohttp
@@ -186,39 +228,84 @@ narwhals==2.29.0
     # via altair
 numpy==2.4.6 ; python_full_version < '3.12'
     # via
+    #   chromadb
+    #   fastembed
+    #   onnxruntime
     #   pandas
     #   pydeck
+    #   rank-bm25
     #   streamlit
 numpy==2.5.5 ; python_full_version >= '3.12'
     # via
+    #   chromadb
+    #   fastembed
+    #   onnxruntime
     #   pandas
     #   pydeck
+    #   rank-bm25
     #   streamlit
+oauthlib==4.0.1
+    # via
+    #   kubernetes
+    #   requests-oauthlib
+onnxruntime==1.32.0
+    # via
+    #   chromadb
+    #   fastembed
 openai==2.54.0
     # via
     #   litellm
     #   opik
 opentelemetry-api==1.45.2
-    # via fastapi
+    # via
+    #   chromadb
+    #   fastapi
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-exporter-otlp-common==0.66b2
+    # via opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-exporter-otlp-proto-common==1.45.2
+    # via opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-exporter-otlp-proto-grpc==1.45.2
+    # via chromadb
+opentelemetry-proto==1.45.2
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-sdk==1.45.2
+    # via
+    #   chromadb
+    #   opentelemetry-exporter-otlp-common
+    #   opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-semantic-conventions==0.66b2
+    # via opentelemetry-sdk
 opik==2.2.149
     # via netracare
-orjson==3.13.0 ; platform_python_implementation != 'PyPy'
+orjson==3.13.0
     # via
+    #   chromadb
     #   langsmith
     #   opik
+overrides==7.7.0
+    # via chromadb
 packaging==26.3
     # via
     #   altair
+    #   build
     #   huggingface-hub
     #   langchain-core
     #   langsmith
     #   litellm
+    #   onnxruntime
     #   pytest
     #   streamlit
 pandas==3.1.1
     # via streamlit
 pillow==13.0.0
-    # via streamlit
+    # via
+    #   fastembed
+    #   streamlit
 pluggy==1.7.0
     # via pytest
 propcache==0.5.4
@@ -226,13 +313,23 @@ propcache==0.5.4
     #   aiohttp
     #   yarl
 protobuf==7.36.2
-    # via streamlit
+    # via
+    #   googleapis-common-protos
+    #   onnxruntime
+    #   opentelemetry-proto
+    #   streamlit
+py-rust-stemmers==0.1.8
+    # via fastembed
 pyarrow==26.0.1
     # via streamlit
+pybase64==1.5.2
+    # via chromadb
 pydantic==2.14.3
     # via
+    #   chromadb
     #   fastapi
     #   groq
+    #   kubernetes
     #   langchain-core
     #   langsmith
     #   litellm
@@ -240,10 +337,12 @@ pydantic==2.14.3
     #   openai
     #   opik
     #   pydantic-settings
+    #   typer
 pydantic-core==2.50.4
     # via pydantic
 pydantic-settings==2.16.2
     # via
+    #   chromadb
     #   litellm
     #   netracare
     #   opik
@@ -255,11 +354,18 @@ pygments==2.21.0
     #   rich
 pyjwt==2.15.1
     # via netracare
+pypdf==7.1.1
+    # via netracare
+pypika==0.51.1
+    # via chromadb
+pyproject-hooks==1.3.3
+    # via build
 pytest==9.2.0
     # via opik
 python-dateutil==2.9.0.post0
     # via
     #   botocore
+    #   kubernetes
     #   pandas
 python-dotenv==1.2.4
     # via
@@ -271,11 +377,15 @@ python-multipart==0.0.34
     # via streamlit
 pyyaml==6.0.3
     # via
+    #   chromadb
     #   huggingface-hub
+    #   kubernetes
     #   langchain-core
     #   litellm
     #   netracare
     #   uvicorn
+rank-bm25==0.2.2
+    # via netracare
 rapidfuzz==3.14.6
     # via opik
 referencing==0.37.0
@@ -286,15 +396,23 @@ regex==2026.11.18
     # via tiktoken
 requests==2.34.2
     # via
+    #   fastembed
+    #   kubernetes
     #   langsmith
     #   netracare
+    #   requests-oauthlib
     #   requests-toolbelt
     #   streamlit
     #   tiktoken
+requests-oauthlib==2.0.0
+    # via kubernetes
 requests-toolbelt==1.0.0
     # via langsmith
 rich==15.0.0
-    # via opik
+    # via
+    #   chromadb
+    #   opik
+    #   typer
 rpds-py==2026.9.1
     # via
     #   jsonschema
@@ -303,6 +421,8 @@ s3transfer==0.19.3
     # via boto3
 sentry-sdk==2.74.0
     # via opik
+shellingham==1.5.4
+    # via typer
 six==1.17.0
     # via python-dateutil
 sniffio==1.3.1
@@ -324,15 +444,21 @@ structlog==26.1.0
     # via netracare
 tenacity==9.2.1
     # via
+    #   chromadb
     #   langchain-core
     #   netracare
     #   opik
 tiktoken==0.14.0
     # via litellm
 tokenizers==0.23.3
-    # via litellm
+    # via
+    #   chromadb
+    #   fastembed
+    #   litellm
 tqdm==4.70.1
     # via
+    #   chromadb
+    #   fastembed
     #   huggingface-hub
     #   openai
     #   opik
@@ -346,6 +472,8 @@ truststore==0.10.5 ; sys_platform != 'emscripten'
     # via
     #   httpcore2
     #   httpx2
+typer==0.29.2
+    # via chromadb
 types-s3transfer==0.19.3
     # via boto3-stubs
 typing-extensions==4.16.0
@@ -356,16 +484,22 @@ typing-extensions==4.16.0
     #   altair
     #   anyio
     #   boto3-stubs
+    #   chromadb
     #   fastapi
     #   groq
+    #   grpcio
     #   httpx2
     #   huggingface-hub
+    #   kubernetes
     #   langchain-core
     #   langchain-protocol
     #   langsmith
     #   mypy-boto3-bedrock-runtime
     #   openai
     #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
     #   pydantic-settings
@@ -387,6 +521,7 @@ tzdata==2026.6
 urllib3==2.8.0
     # via
     #   botocore
+    #   kubernetes
     #   requests
     #   sentry-sdk
 uuid-utils==0.19.0
@@ -397,6 +532,7 @@ uuid6==2025.0.1
     # via opik
 uvicorn==0.54.0
     # via
+    #   chromadb
     #   netracare
     #   streamlit
 uvloop==0.23.0 ; platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'
@@ -407,11 +543,15 @@ watchfiles==1.3.0
     # via
     #   opik
     #   uvicorn
+websocket-client==1.9.2
+    # via kubernetes
 websockets==17.4
     # via
     #   langsmith
     #   streamlit
     #   uvicorn
+win32-setctime==1.2.1 ; sys_platform == 'win32'
+    # via loguru
 xxhash==4.1.0
     # via langsmith
 yarl==1.25.1

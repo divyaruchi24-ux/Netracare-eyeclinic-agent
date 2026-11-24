@@ -24,6 +24,10 @@ dependencies = [
     "groq>=1.7.0",
     "langchain-core>=1.8.3",
     "tenacity>=9.2.1",
+    "chromadb>=1.5.9",
+    "rank-bm25>=0.2.2",
+    "fastembed>=0.9.1",
+    "pypdf>=7.1.1",
 ]
 
 [project.scripts]
@@ -81,7 +85,7 @@ plugins = ["pydantic.mypy"]
 packages = ["netracare"]
 
 [[tool.mypy.overrides]]
-module = ["faker.*"]
+module = ["faker.*", "rank_bm25.*", "fastembed.*", "chromadb.*", "pypdf.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -91,6 +95,7 @@ pythonpath = ["src", "."]
 markers = [
     "live: calls real external services (LLM, Opik); opt-in",
     "db: uses a real SQLite database with migrations applied",
+    "models: loads the real fastembed models (downloaded once into MODELS_CACHE_DIR)",
 ]
 
 [tool.coverage.run]

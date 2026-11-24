@@ -10,6 +10,8 @@ import streamlit as st
 from netracare.ui.api_client import ApiClient, ApiError
 from netracare.ui.state import form_key, reset_form_key
 
+PREFILL_KEY = "booking_prefill"  # set by the chat page's "Book with ..." button
+
 DISCLAIMER = (
     "NetraCare's online services handle bookings and clinic information only and do not give "
     "medical advice. **If you have sudden vision loss, a chemical splash or an eye injury, call "
@@ -118,12 +120,21 @@ def booking_widget(client: ApiClient, patient_id: str, *, staff: bool, key: str)
     specialties = call(client.get, "/specialties") or []
     spec_codes = [s["code"] for s in specialties]
     spec_names = {s["code"]: s["name"] for s in specialties}
+    # One-shot prefill from a chat suggestion ("Book with Dr. ...").
+    prefill = st.session_state.pop(PREFILL_KEY, None)
+    if prefill and prefill.get("specialty") in spec_codes:
+        st.session_state[f"{key}_spec"] = prefill["specialty"]
+        st.session_state[f"{key}_prefill_doctor"] = prefill.get("doctor_id")
     c1, c2 = st.columns(2)
     with c1:
         spec = st.selectbox(
             "Specialty", spec_codes, format_func=lambda c: spec_names.get(c, c), key=f"{key}_spec"
         )
     doctors = call(client.get, "/doctors", specialty=spec) or []
+    wanted = st.session_state.pop(f"{key}_prefill_doctor", None)
+    match = next((d for d in doctors if d["id"] == wanted), None)
+    if match is not None:
+        st.session_state[f"{key}_doctor"] = match
     with c2:
         doctor = st.selectbox(
             "Doctor",

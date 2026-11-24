@@ -741,3 +741,26 @@ def test_benign_reason_books_normally(
         reason="annual check-up",
     )
     assert body["requires_approval"] is False
+
+
+def test_retried_emergency_booking_raises_one_alert(
+    client: TestClient, db: Session, patient_headers: Headers
+) -> None:
+    """Phase 2 carry-over: the same patient retrying the same emergency reason reuses the
+    open alert instead of raising another."""
+    from netracare.db.models import TriageAlert
+
+    slots = slot_ids_at(db, "D5", FRI_10)
+    for _ in range(3):
+        r = book_api(
+            client,
+            patient_headers,
+            pid("P010"),
+            "D5",
+            slots,
+            reason="sudden curtain over my vision",
+        )
+        assert r.status_code == 409 and r.json()["error"]["code"] == "emergency_detected"
+    ids = {r.json()["error"]["details"]["alert_id"]}
+    assert len(ids) == 1
+    assert fresh(db).scalar(select(func.count()).select_from(TriageAlert)) == 1

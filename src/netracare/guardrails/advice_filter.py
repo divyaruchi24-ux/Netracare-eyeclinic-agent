@@ -302,3 +302,106 @@ def safe_concern(phrase: str | None) -> str | None:
     if ADVICE_PATTERNS["medicine"].search(p) or ADVICE_PATTERNS["diagnosis_or_risk"].search(p):
         return None
     return p
+
+
+# -- chat answers (Phase 3) ---------------------------------------------------------------------
+#
+# A KB answer may legitimately mention drops ("dilating drops"), conditions ("glaucoma
+# screening") and directives ("bring a driver") because the clinic's own documents do. So the
+# chat check is *relative to the cited sources*: it flags numbers, medicines and doses that the
+# sources do not contain, plus diagnosis/reassurance wording that is never acceptable.
+
+_CITATION = re.compile(r"\[(\d{1,2})\]")
+_AMOUNT = re.compile(r"(?<![\w.])\d[\d,]*(?:\.\d+)?(?![\w])")
+_DOSE = re.compile(
+    r"\b\d+(?:\.\d+)?\s*(?:mg|ml|mcg|%|drops?)\b|\b(?:once|twice|thrice|\d+\s*times)\s+(?:a|per)\s+day\b",
+    re.IGNORECASE,
+)
+_CHAT_DIAGNOSIS = re.compile(
+    r"\byou (?:probably |likely |may |might |could |must )?(?:have|be suffering from)\b"
+    r"|\bsounds like\b|\blooks like (?:you|it(?:'s| is))\b"
+    r"|\bit(?:'s| is) (?:probably|likely|just|nothing|not serious|not urgent|fine|normal)\b"
+    r"|\b(?:nothing|no need) to worry\b|\b(?:can|could) wait\b|\bnot (?:a )?serious\b"
+    r"|\byour (?:pressure|reading|result|report|sugar|vision) (?:is|looks|seems)\b",
+    re.IGNORECASE,
+)
+_CHAT_TREATMENT = re.compile(
+    r"\b(?:you should|i (?:would )?(?:recommend|suggest|advise)|try (?:using|taking)|keep using)\b"
+    r".{0,40}\b(?:use|take|apply|put|stop|start|skip|increase|decrease|switch|continue)\b",
+    re.IGNORECASE,
+)
+_LEAK = re.compile(
+    r"\bsystem prompt\b|\bmy (?:instructions|rules) (?:say|are)\b|\bother patients?'s?\b"
+    r"|\b(?:extract|extracts|document|documents) (?:\[\d+\]|number)\b",
+    re.IGNORECASE,
+)
+_MEDICINE_WORDS = re.compile(
+    r"\b(?:antibiotic|antibiotics|steroid|steroids|ointment|tablet|tablets|pill|pills|capsule"
+    r"|supplement|supplements|vitamin|vitamins|timolol|latanoprost|atropine|artificial tears"
+    r"|lubricant|lubricating|painkiller|paracetamol|ibuprofen)\b",
+    re.IGNORECASE,
+)
+
+
+def cited_numbers(text: str) -> list[int]:
+    return [int(n) for n in _CITATION.findall(text)]
+
+
+def _amounts(text: str) -> set[str]:
+    return {m.group(0).replace(",", "").rstrip(".") for m in _AMOUNT.finditer(text)}
+
+
+def check_chat_answer(answer: str, sources: str) -> list[str]:
+    """Flags for a generated KB answer, judged against the text of the chunks it cites.
+
+    - `number_not_in_source:<n>`: a number (price, hours, days) the sources do not contain
+    - `medicine:<word>` / `dose`: a medicine or dose the sources do not mention
+    - `diagnosis` / `treatment`: diagnostic or reassuring wording, or a treatment directive
+    - `leak`: talks about its prompt, other patients, or the "extracts"
+    """
+    flags: list[str] = []
+    body = _CITATION.sub(" ", answer)
+    src_amounts = _amounts(sources)
+    for amount in sorted(_amounts(body)):
+        if amount not in src_amounts:
+            flags.append(f"number_not_in_source:{amount}")
+    low_src = sources.lower()
+    for m in _MEDICINE_WORDS.finditer(body):
+        if m.group(0).lower() not in low_src:
+            flags.append(f"medicine:{m.group(0).lower()}")
+    for m in _DRUG_SUFFIX.finditer(body):
+        word = m.group(0).lower()
+        if word not in low_src and word not in _COMMON_WORDS and word not in _CHAT_COMMON:
+            flags.append(f"medicine:{word}")
+    for m in _DOSE.finditer(body):
+        if m.group(0).lower() not in low_src:
+            flags.append("dose")
+    if _CHAT_DIAGNOSIS.search(body):
+        flags.append("diagnosis")
+    if _CHAT_TREATMENT.search(body):
+        flags.append("treatment")
+    if _LEAK.search(answer):
+        flags.append("leak")
+    return list(dict.fromkeys(flags))
+
+
+# Ordinary words the drug-suffix heuristic would otherwise catch in clinic answers.
+_CHAT_COMMON: frozenset[str] = frozenset(
+    {
+        "examine", "routine", "medicine", "machine", "online", "determine", "imagine",
+        "combine", "decline", "deadline", "guideline", "guidelines", "outline", "baseline",
+        "discipline", "engine", "magazine", "genuine", "doctrine", "pristine", "masculine",
+        "feminine", "vaccine", "cuisine", "define", "refine", "dine", "fine", "line", "mine",
+        "nine", "pine", "shine", "spine", "wine", "provide", "guide", "inside", "outside",
+        "aside", "beside", "decide", "divide", "wide", "side", "slide", "pride", "include",
+        "update", "date", "rate", "estimate", "separate", "private", "appropriate", "state",
+        "late", "plate", "create", "operate", "indicate", "immediate", "accurate", "adequate",
+        "debate", "relate", "translate", "certificate", "corporate", "climate", "ultimate",
+        "affordable", "hospitalisation", "fasten", "often", "listen", "children", "women",
+        "garden", "eleven", "evening", "morning", "wheelchair", "accompanying", "nurse",
+        "response", "license", "sense", "expense", "defense", "dense", "tense",
+        "personalised", "advised", "supervised", "advise", "revise", "precise", "exercise",
+        "otherwise", "promise", "rise", "wise", "surprise", "enterprise", "franchise",
+        "close", "choose", "lose", "those", "whose", "purpose", "suppose", "dose",
+    }
+)  # fmt: skip

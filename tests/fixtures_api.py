@@ -75,6 +75,9 @@ def make_settings(db_url: str) -> Settings:
         database_url=db_url,
         jwt_secret="test-secret-test-secret-test-secret-123",  # type: ignore[arg-type]
         opik_enabled=False,
+        # Hashing-embedder cosines run lower than bge's; 0.25 keeps "hair transplant" refused
+        # and ordinary clinic questions answerable (real models: 0.605, see Phase 3 T6).
+        rag_min_confidence=0.25,
     )
 
 
@@ -95,6 +98,14 @@ def seeded_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
             password=PASSWORD,
         ).run()
         s.commit()
+    # Phase 3: the real kb/ ingested with the deterministic hashing embedder (no downloads).
+    from netracare.rag.embeddings import HashingEmbedder
+    from netracare.rag.ingest import Ingestor
+    from netracare.rag.vector_store import InMemoryVectorStore
+
+    Ingestor(make_session_factory(engine), HashingEmbedder(), InMemoryVectorStore()).run(
+        ROOT / "kb", root=ROOT
+    )
     with engine.connect() as conn:
         conn.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE)")
     engine.dispose()
@@ -123,8 +134,16 @@ def api_engine(api_db_url: str) -> Iterator[Engine]:
 @pytest.fixture
 def app(api_db_url: str, api_engine: Engine, clock: MutableClock) -> FastAPI:
     # LLM off by default (rules-only triage, static eye-fact); tests opt in via `use_llm`.
+    from netracare.rag.embeddings import HashingEmbedder
+    from tests.fixtures_rag import hashing_store_from_db
+
     app = create_app(
-        make_settings(api_db_url), clock=clock, engine=api_engine, llm_provider=DisabledProvider()
+        make_settings(api_db_url),
+        clock=clock,
+        engine=api_engine,
+        llm_provider=DisabledProvider(),
+        embedder=HashingEmbedder(),
+        vector_store=hashing_store_from_db(make_session_factory(api_engine)),
     )
     app.state.llm_sleep = lambda _s: None
     return app

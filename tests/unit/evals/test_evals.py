@@ -249,7 +249,12 @@ def test_live_suites_flagged_and_prompt_versions_scoped() -> None:
     from netracare.evals.runner import prompt_versions
 
     live = {n for n, s in SUITES.items() if s.requires_live}
-    assert live == {"safety_redflags_llm", "visit_summary_live"}
+    assert live == {
+        "safety_redflags_llm",
+        "visit_summary_live",
+        "router_llm",
+        "rag_answer_live",
+    }
     pv = prompt_versions(SETTINGS, SUITES["safety_redflags_llm"], ROOT)
     assert set(pv) == {"red_flag_classifier", "json_repair"}
     assert pv["red_flag_classifier"].startswith("v1@")

@@ -160,3 +160,42 @@ class LLMCallStatus(StrEnum):
     ERROR = "error"
     BUDGET_BLOCKED = "budget_blocked"
     INVALID_OUTPUT = "invalid_output"
+
+
+class ChatIntent(StrEnum):
+    FAQ_RAG = "faq_rag"
+    DOCTOR_LOOKUP = "doctor_lookup"
+    PRICING = "pricing"
+    BOOKING = "booking"
+    MEDICAL_QUESTION = "medical_question"
+    EMERGENCY = "emergency"
+    HUMAN_HANDOFF = "human_handoff"
+    CHIT_CHAT = "chit_chat"
+    OFF_TOPIC = "off_topic"
+    CLARIFY = "clarify"
+
+
+class ChatRole(StrEnum):
+    USER = "user"
+    ASSISTANT = "assistant"
+
+
+class ChatSessionStatus(StrEnum):
+    ACTIVE = "active"
+    ENDED = "ended"
+    HANDOFF = "handoff"
+
+
+class HandoffStatus(StrEnum):
+    OPEN = "open"
+    CLAIMED = "claimed"
+    CLOSED = "closed"
+
+
+class HandoffReason(StrEnum):
+    USER_REQUEST = "user_request"
+    LOW_CONFIDENCE = "low_confidence"
+    ROUTER_UNCERTAIN = "router_uncertain"
+    FRUSTRATION = "frustration"
+    SPAM = "spam"
+    BUDGET = "budget"

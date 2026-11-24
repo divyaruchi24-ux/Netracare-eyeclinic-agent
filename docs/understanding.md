@@ -150,3 +150,17 @@ Rule: **agents → services → repositories → DB**. UI → API only. MCP tool
   - Patient-facing escalation and routing text is always a verbatim constant from `safety_policy.md`, guarded by a policy-diff test.
   - LLM calls never run inside a DB write transaction (SQLite write lock); usage rows are written in their own transactions.
   - Pricing verified 2026-11-19 on Groq's model docs; spend capped at $1.50/day and $20/month.
+- **2026-11-24** - **Phase 3 plan approved** (details in [phase-3/understanding.md](phase-3/understanding.md)):
+  - Embeddings run on **fastembed (ONNX)** instead of sentence-transformers. The models are the same (`BAAI/bge-small-en-v1.5`, reranker `Xenova/ms-marco-MiniLM-L-6-v2`), and torch is no longer needed.
+  - `kb_chunks` is the source of truth for citations. BM25 is held in memory; Chroma stores the vectors.
+  - Superseded documents are excluded at retrieval time.
+  - The router has two layers: deterministic safety first, then the LLM.
+  - Below the confidence threshold there is no answer call; the §5.4 script and a handoff are given instead.
+  - Logged-out visitors can chat. Transcripts are kept for 90 days. Rerank is used only if the sweep shows it helps.
+- **2026-11-24** - **Phase 3 complete** ([phase-3/RETRO.md](phase-3/RETRO.md)). Decisions made during execution:
+  - **Rerank off.** The sweep showed recall@3/5 = 1.0 with or without it, and +0.3–2 s per query on CPU.
+  - **Refusal threshold 0.605** on the top cosine, calibrated on `rag_retrieval_v0`.
+  - **Two safety-rule refinements, each with eval cases:**
+    - E7 needs "sudden", a nerve sign or a headache for a drooping lid;
+    - the medical-question detector no longer refuses preparation and logistics questions.
+  - **Log redaction** no longer masks digits inside identifiers.

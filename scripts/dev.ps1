@@ -29,7 +29,12 @@ switch ($Task) {
     }
     "migrate" { Uv run alembic upgrade head }
     "seed" { Uv run python -m netracare.seed --summary }
-    "reseed" { Uv run python -m netracare.seed --reset --summary }
+    "reseed" {
+        Uv run python -m netracare.seed --reset --summary
+        Uv run python -m netracare.rag.ingest --force
+    }
+    "models" { Uv run python -m netracare.rag.models download }
+    "ingest" { Uv run python -m netracare.rag.ingest }
     "api" { Uv run uvicorn --factory netracare.api.main:app_factory --reload --port $ApiPort }
     "ui" {
         if (-not $env:API_BASE_URL) { $env:API_BASE_URL = "http://localhost:$ApiPort" }
@@ -40,6 +45,8 @@ switch ($Task) {
     "evals-live" {
         Uv run python -m netracare.evals run safety_redflags_llm --live --upload
         Uv run python -m netracare.evals run visit_summary_live --live --upload
+        Uv run python -m netracare.evals run router_llm --live --upload
+        Uv run python -m netracare.evals run rag_answer_live --live --upload
     }
     "groq-smoke" { Uv run python scripts/groq_smoke.py }
     "requirements" {
@@ -47,6 +54,6 @@ switch ($Task) {
         Uv export --only-group dev --no-hashes --no-emit-project --format requirements-txt -o requirements-dev.txt
     }
     default {
-        Write-Host "Tasks: install lint fmt type test check migrate seed reseed api ui evals evals-upload evals-live groq-smoke requirements"
+        Write-Host "Tasks: install lint fmt type test check migrate seed reseed models ingest api ui evals evals-upload evals-live groq-smoke requirements"
     }
 }

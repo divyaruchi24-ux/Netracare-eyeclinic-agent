@@ -17,7 +17,8 @@ never holds the SQLite write lock.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from datetime import timedelta
 from typing import Any
 
 from langchain_core.runnables import Runnable, RunnableLambda
@@ -243,7 +244,14 @@ class TriageService:
         actor: CurrentUser | None = None,
         patient_id: str | None = None,
         raise_alert: bool = True,
+        dedup_key: str | None = None,
+        chat_session_id: str | None = None,
+        min_level: RedFlagLevel | None = None,
     ) -> TriageResult:
+        """Classify `text`. `dedup_key`: an open alert with the same key raised within
+        ALERT_DEDUP_MINUTES is reused instead of creating another (retried bookings, repeated
+        chat messages). `min_level`: a floor from another signal (e.g. the chat router said
+        "emergency"); the result is never less severe than it (safety policy 4.4)."""
         if len(text) > MAX_TEXT:
             raise ValidationAppError("text_too_long", f"please keep it under {MAX_TEXT} characters")
         if not _meaningful(text):
@@ -261,6 +269,8 @@ class TriageService:
         names = self._patient_names(patient_id)
         llm_out, source = self._llm(text, actor, names, level_for(matches))
         d = decide(text, matches, llm_out, source, self.settings.triage_confidence_threshold)
+        if min_level is not None and min_level.severity() > d.level.severity():
+            d = replace(d, level=min_level, specialty=d.specialty or "GENERAL")
         doctor = self._doctor_name(d.specialty)
         result = TriageResult(
             level=d.level,
@@ -278,8 +288,34 @@ class TriageService:
         )
         level = d.level
         if raise_alert and level in _ALERT_LEVELS:
-            result.alert_id = self._raise_alert(result, text, patient_id, actor, names)
+            existing = self._recent_alert(dedup_key)
+            if existing is not None:
+                result.alert_id = existing.id
+                result.meta["alert_deduplicated"] = True
+            else:
+                result.alert_id = self._raise_alert(
+                    result, text, patient_id, actor, names, dedup_key, chat_session_id
+                )
         return result
+
+    def _recent_alert(self, dedup_key: str | None) -> TriageAlert | None:
+        if not dedup_key or self.settings.alert_dedup_minutes <= 0:
+            return None
+        since = self.clock.now_utc() - timedelta(minutes=self.settings.alert_dedup_minutes)
+        return self.s.scalar(
+            select(TriageAlert)
+            .where(
+                TriageAlert.dedup_key == dedup_key,
+                TriageAlert.status == AlertStatus.OPEN,
+                TriageAlert.created_at >= since,
+            )
+            .order_by(TriageAlert.created_at.desc())
+            .limit(1)
+        )
+
+    def doctor_for(self, specialty: str | None) -> str | None:
+        """Name of the first active doctor of a specialty (public helper for chat routing)."""
+        return self._doctor_name(specialty)
 
     def _llm(
         self,
@@ -347,6 +383,8 @@ class TriageService:
         patient_id: str | None,
         actor: CurrentUser | None,
         names: list[str],
+        dedup_key: str | None = None,
+        chat_session_id: str | None = None,
     ) -> str:
         excerpt = redact_all(" ".join(text.split()), names)
         if len(excerpt) > EXCERPT_LEN:
@@ -361,6 +399,8 @@ class TriageService:
             patient_id=patient_id,
             actor_user_id=actor.id if actor else None,
             status=AlertStatus.OPEN,
+            dedup_key=dedup_key,
+            chat_session_id=chat_session_id,
         )
         self.s.add(alert)
         self.s.flush()
@@ -443,3 +483,10 @@ class TriageService:
 
 def _code_order(code: str) -> tuple[int, int]:
     return (0 if code.startswith("E") else 1, int(code[1:]))
+
+
+def alert_dedup_key(owner: str, codes: list[str] | tuple[str, ...]) -> str:
+    """Same caller (patient or chat session) + same red-flag codes -> same key."""
+    import hashlib
+
+    return hashlib.sha256(f"{owner}|{','.join(sorted(codes))}".encode()).hexdigest()

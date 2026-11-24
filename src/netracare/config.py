@@ -58,10 +58,33 @@ class Settings(BaseSettings):
     opik_enabled: bool = False
     opik_url_override: str | None = None
 
-    # Retrieval
+    # Retrieval (fastembed ONNX models; see docs/phase-3/understanding.md 3.1)
     embedding_model: str = "BAAI/bge-small-en-v1.5"
-    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
     chroma_path: str = "./data/chroma"
+    kb_dir: str = "kb"
+    models_cache_dir: str = "./models"
+    rag_bm25_k: int = Field(default=20, ge=1, le=100)
+    rag_vector_k: int = Field(default=20, ge=1, le=100)
+    rag_rrf_k: int = Field(default=60, ge=1)
+    rag_top_k: int = Field(default=5, ge=1, le=20)
+    # Off by default: the T6 sweep (scripts/rag_sweep.py, 2026-11-24) showed recall@3/@5 = 1.0
+    # with or without it, while it added 0.3-1.2 s per query on CPU (docs/phase-3 Decisions Log).
+    rag_rerank: bool = False
+    rag_rerank_k: int = Field(default=5, ge=1, le=50)
+    # Retrieval-confidence refusal threshold (top cosine without rerank), calibrated on
+    # evals/datasets/rag_retrieval_v0.jsonl: keeps in-KB answerable >= 0.95.
+    rag_min_confidence: float = Field(default=0.605, ge=0, le=1)
+
+    # Chat
+    chat_max_turns: int = Field(default=30, ge=1)
+    chat_max_chars: int = Field(default=2000, ge=1)
+    chat_rate_limit_per_min: int = Field(default=20, ge=1)
+    chat_anon_rate_limit_per_min: int = Field(default=10, ge=1)
+    chat_history_turns: int = Field(default=3, ge=0, le=10)
+    router_confidence_threshold: float = Field(default=0.6, ge=0, le=1)
+    alert_dedup_minutes: int = Field(default=10, ge=0)
+    chat_retention_days: int = Field(default=90, ge=1)
 
     # Budgets (USD)
     monthly_llm_budget_usd: float = Field(default=20.0, ge=0)

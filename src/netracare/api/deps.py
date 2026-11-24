@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Iterator
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
@@ -14,6 +15,9 @@ from netracare.db.session import begin_write
 from netracare.domain.clock import Clock
 from netracare.errors import AppError
 from netracare.llm.client import LLMClient
+from netracare.rag.embeddings import Embedder, Reranker
+from netracare.rag.retriever import RetrievalIndex
+from netracare.rag.vector_store import VectorStore
 from netracare.security.rate_limit import LoginThrottle
 
 _READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
@@ -81,3 +85,39 @@ def get_llm_client(request: Request) -> LLMClient:
 
 
 LLMDep = Annotated[LLMClient, Depends(get_llm_client)]
+
+
+_INDEX_LOCK = threading.Lock()
+
+
+def build_rag_components(state: Any) -> tuple[Embedder, VectorStore, Reranker | None]:
+    """The app's embedder / vector store / reranker: injected (tests) or the production ones
+    (fastembed + Chroma), created on first use so the API starts without loading models."""
+    settings: Settings = state.settings
+    if getattr(state, "rag_embedder", None) is None or getattr(state, "rag_store", None) is None:
+        from netracare.rag.ingest import build_components
+
+        state.rag_embedder, state.rag_store = build_components(settings)
+    if getattr(state, "rag_reranker", None) is None and settings.rag_rerank:
+        from netracare.rag.embeddings import FastReranker
+
+        state.rag_reranker = FastReranker(settings.reranker_model, settings.models_cache_dir)
+    return state.rag_embedder, state.rag_store, getattr(state, "rag_reranker", None)
+
+
+def get_retrieval_index(request: Request) -> RetrievalIndex:
+    state = request.app.state
+    index: RetrievalIndex | None = getattr(state, "retrieval_index", None)
+    if index is None:
+        with _INDEX_LOCK:
+            index = getattr(state, "retrieval_index", None)
+            if index is None:
+                embedder, store, reranker = build_rag_components(state)
+                index = RetrievalIndex(
+                    state.session_factory, embedder, store, reranker, state.settings
+                ).load()
+                state.retrieval_index = index
+    return index
+
+
+IndexDep = Annotated[RetrievalIndex, Depends(get_retrieval_index)]

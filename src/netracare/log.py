@@ -13,7 +13,9 @@ import structlog
 request_id_var: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-_PHONE_RE = re.compile(r"(?<![\d-])(?:\+?\d[\d\s-]{8,}\d)(?![\d-])")
+# Not preceded/followed by a word character or hyphen, so digit runs inside identifiers
+# (UUID segments such as "c123456789012") are not mistaken for phone numbers.
+_PHONE_RE = re.compile(r"(?<![\w-])(?:\+?\d[\d\s-]{8,}\d)(?![\w-])")
 _ISO_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _MIN_PHONE_DIGITS = 10
 
@@ -62,8 +64,15 @@ def _add_request_id(
     return event_dict
 
 
+def _is_identifier_key(key: str) -> bool:
+    return key in ("request_id", "timestamp", "fingerprint") or key.endswith("_id")
+
+
 def _redact_strings(_: Any, __: str, event_dict: MutableMapping[str, Any]) -> dict[str, Any]:
-    return {k: redact(v) if isinstance(v, str) else v for k, v in event_dict.items()}
+    return {
+        k: redact(v) if isinstance(v, str) and not _is_identifier_key(k) else v
+        for k, v in event_dict.items()
+    }
 
 
 def configure_logging(level: str = "INFO") -> None:

@@ -41,16 +41,24 @@ def parse_front_matter(text: str) -> tuple[dict[str, Any], str]:
     parts = text.split("---", 2)
     if len(parts) < 3:
         raise FrontMatterError("unterminated front-matter")
-    meta = yaml.safe_load(parts[1]) or {}
+    meta = validate_meta(yaml.safe_load(parts[1]) or {})
+    return meta, parts[2].lstrip("\n")
+
+
+def validate_meta(meta: object) -> dict[str, Any]:
+    """Check KB metadata (markdown front matter or a PDF's sidecar YAML)."""
     if not isinstance(meta, dict):
         raise FrontMatterError("front-matter must be a mapping")
     missing = [k for k in REQUIRED_KEYS if k not in meta]
     if missing:
         raise FrontMatterError(f"missing keys: {missing}")
-    DocType(meta["doc_type"])  # validate
+    try:
+        DocType(meta["doc_type"])
+    except ValueError as exc:
+        raise FrontMatterError(f"unknown doc_type {meta['doc_type']!r}") from exc
     if not isinstance(meta["effective_date"], date):
         raise FrontMatterError("effective_date must be a YYYY-MM-DD date")
-    return meta, parts[2].lstrip("\n")
+    return meta
 
 
 def scan_kb(kb_dir: Path) -> list[KbFile]:
@@ -97,11 +105,11 @@ def upsert_kb(session: Session, kb_dir: Path, root: Path) -> int:
             existing.title = str(f.meta["title"])
             existing.meta = extra
     session.flush()
-    _link_supersession(session)
+    link_supersession(session)
     return inserted
 
 
-def _link_supersession(session: Session) -> None:
+def link_supersession(session: Session) -> None:
     by_slug: dict[str, list[KnowledgeDoc]] = {}
     for doc in KnowledgeDocRepository(session).list_all():
         by_slug.setdefault(doc.slug, []).append(doc)

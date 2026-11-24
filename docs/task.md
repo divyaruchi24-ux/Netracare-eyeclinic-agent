@@ -29,7 +29,16 @@ Each phase links to its detailed `task.md`. A phase box is ticked only when all 
   - [x] Visit-summary drafts (doctor approval)
   - [x] UI pages, evals (rules gate + live LLM suite), Groq smoke test
   - [x] Tests, RETRO, commit `phase-2: ...`
-- [ ] **Phase 3 — Patient chat with RAG** → phase-3/task.md
+- [x] **Phase 3 — Patient chat with RAG** → [phase-3/task.md](phase-3/task.md)
+  - [x] Planning docs written
+  - [x] Planning docs approved
+  - [x] Ingestion (md/pdf, heading-aware chunks, kb_chunks, injection scan) + BM25 + Chroma (fastembed)
+  - [x] Hybrid retriever (RRF, filters, rerank, confidence) + retrieval eval, k sweep, threshold calibration
+  - [x] Cited answers with post-checks, extractive fallback, disclaimers
+  - [x] Two-layer router + specialist routing (clarify → D5)
+  - [x] ChatService, sessions, handoffs, alert dedup; API + permission matrix
+  - [x] UI (Ask NetraCare, Chat handoffs, Knowledge base), live evals in Opik
+  - [x] Tests, RETRO, commit `phase-3: ...`
 - [ ] **Phase 4 — Booking agent (LangGraph)** → phase-4/task.md
 - [ ] **Phase 5 — Evals & LLMOps (Opik)** → phase-5/task.md
 - [ ] **Phase 6 — MCP & Agent Skills** → phase-6/task.md

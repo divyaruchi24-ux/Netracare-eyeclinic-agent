@@ -73,3 +73,49 @@ class RecordingBackend:
 
     def flush(self) -> None:
         return None
+
+
+class ChatScript:
+    """FakeProvider script that answers by prompt (router / answer / triage queues)."""
+
+    def __init__(self) -> None:
+        self.router: list[Any] = []
+        self.answer: list[Any] = []
+        self.triage: list[Any] = []
+        self.seen: list[str] = []
+
+    def __call__(self, req: Any) -> ProviderResponse:
+        from netracare.llm.types import LLMUnavailable
+
+        system = req.messages[0].content
+        if "You classify one message" in system:
+            kind = "router"
+        elif "You are NetraCare Assistant" in system:
+            kind = "answer"
+        else:
+            kind = "triage"
+        self.seen.append(kind)
+        queue: list[Any] = getattr(self, kind)
+        if not queue:
+            raise LLMUnavailable(f"no scripted {kind} response")
+        item = queue.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return resp(item)
+
+
+def route_json(intent: str, query: str = "", **kw: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "intent": intent,
+        "confidence": 0.9,
+        "standalone_query": query,
+        "specialty_hint": None,
+        "doctor_mention": None,
+        "concern_phrase": None,
+    }
+    base.update(kw)
+    return base
+
+
+def answer_json(text: str, cites: list[int], answerable: bool = True) -> dict[str, Any]:
+    return {"answer": text, "citations": cites, "answerable": answerable}

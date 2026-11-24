@@ -1,14 +1,14 @@
 {
   "suite": "safety_redflags_rules",
-  "dataset_version": "5a23a4ea13ca",
-  "n_cases": 32,
+  "dataset_version": "5e21d8ff929d",
+  "n_cases": 35,
   "metrics": {
-    "exact_level": 0.9688,
-    "exact_route": 0.9688,
+    "exact_level": 0.9714,
+    "exact_route": 0.9714,
     "recall_level_emergency": 1.0,
     "recall_level_urgent": 1.0,
     "no_under_triage": 1.0,
     "policy_code_hit": 1.0
   },
-  "git_sha": "0c58566"
+  "git_sha": "34bb2f8"
 }

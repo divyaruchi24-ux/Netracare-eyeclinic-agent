@@ -33,7 +33,11 @@ from netracare.domain.enums import (
     AppointmentType,
     ApprovalKind,
     ApprovalStatus,
+    ChatRole,
+    ChatSessionStatus,
     DocType,
+    HandoffReason,
+    HandoffStatus,
     LLMCallStatus,
     NotificationChannel,
     NotificationStatus,
@@ -406,6 +410,9 @@ class TriageAlert(IdMixin, Base):
     resolved_by: Mapped[str | None] = mapped_column(String(36))
     resolved_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     resolution_note: Mapped[str | None] = mapped_column(Text)
+    # Same caller + same red-flag codes within ALERT_DEDUP_MINUTES reuse the open alert.
+    dedup_key: Mapped[str | None] = mapped_column(String(64), index=True)
+    chat_session_id: Mapped[str | None] = mapped_column(ForeignKey("chat_sessions.id"))
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
@@ -451,3 +458,112 @@ class VisitSummary(IdMixin, TimestampMixin, Base):
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
+
+
+class KbChunk(Base):
+    """One heading-aware chunk of a knowledge-base document: the source of truth for citations."""
+
+    __tablename__ = "kb_chunks"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    doc_id: Mapped[str] = mapped_column(ForeignKey("knowledge_docs.id"), nullable=False)
+    ordinal: Mapped[int] = mapped_column(Integer, nullable=False)
+    heading_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    embed_text: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    doc_type: Mapped[DocType] = mapped_column(_enum(DocType, "doc_type"), nullable=False)
+    slug: Mapped[str] = mapped_column(String(128), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    effective_date: Mapped[date] = mapped_column(Date, nullable=False)
+    doctor_code: Mapped[str | None] = mapped_column(String(16))
+    specialty: Mapped[str | None] = mapped_column(String(32))
+    procedure: Mapped[str | None] = mapped_column(String(64))
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (UniqueConstraint("doc_id", "ordinal"),)
+
+
+class KbIndexState(Base):
+    """Single row describing the built index (fingerprint detects a stale vector store)."""
+
+    __tablename__ = "kb_index_state"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    embedding_model: Mapped[str] = mapped_column(String(128), nullable=False)
+    chunker_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    n_docs: Mapped[int] = mapped_column(Integer, nullable=False)
+    n_chunks: Mapped[int] = mapped_column(Integer, nullable=False)
+    built_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+    report: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+
+
+class ChatSession(IdMixin, Base):
+    __tablename__ = "chat_sessions"
+
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"))
+    patient_id: Mapped[str | None] = mapped_column(ForeignKey("patients.id"))
+    anon_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    status: Mapped[ChatSessionStatus] = mapped_column(
+        _enum(ChatSessionStatus, "chat_session_status"),
+        default=ChatSessionStatus.ACTIVE,
+        nullable=False,
+    )
+    turns: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cost_usd: Mapped[Decimal] = mapped_column(Numeric(12, 6), default=Decimal(0), nullable=False)
+    negative_turns: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    pending_clarification: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+    last_active_at: Mapped[datetime] = mapped_column(
+        UTCDateTime(), default=utcnow, nullable=False, index=True
+    )
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
+
+
+class ChatMessage(IdMixin, Base):
+    __tablename__ = "chat_messages"
+
+    session_id: Mapped[str] = mapped_column(
+        ForeignKey("chat_sessions.id"), nullable=False, index=True
+    )
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)  # order within the session
+    role: Mapped[ChatRole] = mapped_column(_enum(ChatRole, "chat_role"), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    intent: Mapped[str | None] = mapped_column(String(32))
+    mode: Mapped[str | None] = mapped_column(String(16))
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    safety: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    llm_call_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+
+    __table_args__ = (UniqueConstraint("session_id", "seq"),)
+
+
+class ChatHandoff(IdMixin, Base):
+    """A request for the front desk to take over a chat (context summary is PII-redacted)."""
+
+    __tablename__ = "chat_handoffs"
+
+    session_id: Mapped[str] = mapped_column(ForeignKey("chat_sessions.id"), nullable=False)
+    reason: Mapped[HandoffReason] = mapped_column(
+        _enum(HandoffReason, "handoff_reason"), nullable=False
+    )
+    summary_redacted: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[HandoffStatus] = mapped_column(
+        _enum(HandoffStatus, "handoff_status"), default=HandoffStatus.OPEN, nullable=False
+    )
+    claimed_by: Mapped[str | None] = mapped_column(String(36))
+    claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    closed_by: Mapped[str | None] = mapped_column(String(36))
+    closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
+    close_note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
+    __table_args__ = (Index("ix_chat_handoffs_status_created", "status", "created_at"),)

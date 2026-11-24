@@ -314,11 +314,16 @@ class BookingService:
         """
         if not reason or not reason.strip():
             return None
-        from netracare.services.triage_service import TriageService
+        from netracare.guardrails.redflag_rules import detect
+        from netracare.services.triage_service import TriageService, alert_dedup_key
 
         is_patient = actor.role is Role.PATIENT
         triage = TriageService(self.s, self.clock, self.settings, self.llm if is_patient else None)
-        result = triage.classify(reason, actor=actor, patient_id=patient.id, raise_alert=is_patient)
+        # A retried booking (same patient, same red flags) reuses the open alert.
+        key = alert_dedup_key(f"patient:{patient.id}", sorted({m.code for m in detect(reason)}))
+        result = triage.classify(
+            reason, actor=actor, patient_id=patient.id, raise_alert=is_patient, dedup_key=key
+        )
         if is_patient and result.level is RedFlagLevel.EMERGENCY:
             raise ConflictError(
                 "emergency_detected",
