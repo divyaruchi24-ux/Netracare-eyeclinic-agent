@@ -52,6 +52,7 @@ evals-live:
 	uv run python -m netracare.evals run visit_summary_live --live --upload
 	uv run python -m netracare.evals run router_llm --live --upload
 	uv run python -m netracare.evals run rag_answer_live --live --upload
+	uv run python -m netracare.evals run booking_agent_live --live --upload
 
 groq-smoke:
 	uv run python scripts/groq_smoke.py

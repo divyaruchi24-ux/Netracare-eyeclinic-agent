@@ -7,7 +7,8 @@ Checks, against the real API and the configured database:
 4. one visit-summary draft round-trips (reasoning model);
 5. one chat turn: router (fast) -> hybrid retrieval over the ingested KB -> cited answer
    (reasoning) that passes the post-checks; needs `dev.ps1 ingest` (or reseed) first;
-6. every call wrote an `llm_calls` row with tokens and cost; Opik spans are flushed if enabled.
+6. one booking-agent turn: booking_nlu (fast) -> code-resolved date -> 3 options, no write;
+7. every call wrote an `llm_calls` row with tokens and cost; Opik spans are flushed if enabled.
 Exit code 0 on success, 1 on any failed check.
 """
 
@@ -143,11 +144,22 @@ def main() -> int:
     check(answer.mode == "llm" and bool(answer.citations), "cited LLM answer passed post-checks")
     check("52,000" in answer.text and "45,000" not in answer.text, "current LASIK price only")
 
-    print("6. usage rows")
+    print("6. booking agent turn (booking_nlu on a scratch copy of the demo DB, no write)")
+    from netracare.evals.booking_tasks import run_conversation
+
+    conv = run_conversation(
+        {"turns": ["book a check-up with Dr Kavya Nair next Tuesday morning"], "patient": "P010"},
+        llm=llm,
+    )
+    print(f"     agent: {conv['final_kind']} -> {conv['last_reply'][:120]}")
+    check(conv["final_kind"] == "options", "agent proposed options from the LLM's understanding")
+    check(conv["writes_ok"] == [], "nothing written without a yes")
+
+    print("7. usage rows")
     with factory() as s:
         after = s.scalar(select(func.count()).select_from(LLMCall)) or 0
         last = s.scalars(select(LLMCall).order_by(LLMCall.at_utc.desc()).limit(1)).one()
-    check(after - before >= 7, f"{after - before} llm_calls rows written")
+    check(after - before >= 8, f"{after - before} llm_calls rows written")
     check(last.output_tokens > 0 and last.cost_usd > 0, "tokens and cost recorded")
     if tracing:
         flush_tracing()

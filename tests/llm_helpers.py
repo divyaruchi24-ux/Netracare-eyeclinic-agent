@@ -82,6 +82,7 @@ class ChatScript:
         self.router: list[Any] = []
         self.answer: list[Any] = []
         self.triage: list[Any] = []
+        self.nlu: list[Any] = []  # booking_nlu (empty -> the agent's keyword fallback)
         self.seen: list[str] = []
 
     def __call__(self, req: Any) -> ProviderResponse:
@@ -92,6 +93,8 @@ class ChatScript:
             kind = "router"
         elif "You are NetraCare Assistant" in system:
             kind = "answer"
+        elif "booking assistant" in system:
+            kind = "nlu"
         else:
             kind = "triage"
         self.seen.append(kind)

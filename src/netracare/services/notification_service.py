@@ -28,6 +28,14 @@ TEMPLATES: dict[str, str] = {
         "Our front desk will review it."
     ),
     "approval_approved": "Good news: your request for {doctor} on {when} was approved.",
+    "approval_changed": (
+        "Your request was confirmed at a different time: {doctor} on {when}. Contact the front "
+        "desk if that does not suit you."
+    ),
+    "approval_overdue": (
+        "Our team hasn't confirmed your request for {doctor} on {when} yet; we'll contact you, "
+        "or you can call +91 80 0000 1234."
+    ),
     "approval_rejected": (
         "Your request for {doctor} on {when} could not be approved. Please contact the front desk."
     ),

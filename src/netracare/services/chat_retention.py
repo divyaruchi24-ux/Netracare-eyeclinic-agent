@@ -26,6 +26,7 @@ class PurgeReport:
     sessions: int
     messages: int
     handoffs: int
+    session_ids: tuple[str, ...] = ()  # also the booking agent's checkpoint thread ids
 
 
 def purge(session: Session, now: datetime, days: int, *, dry_run: bool = False) -> PurgeReport:
@@ -58,7 +59,7 @@ def purge(session: Session, now: datetime, days: int, *, dry_run: bool = False) 
         session.execute(delete(ChatHandoff).where(ChatHandoff.session_id.in_(ids)))
         session.execute(delete(ChatSession).where(ChatSession.id.in_(ids)))
         session.flush()
-    return PurgeReport(len(ids), n_msgs, n_hand)
+    return PurgeReport(len(ids), n_msgs, n_hand, tuple(ids))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -76,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
     factory = make_session_factory(make_engine(settings.database_url))
     with session_scope(factory, write=True) as s:
         r = purge(s, SystemClock().now_utc(), days, dry_run=args.dry_run)
+    if r.session_ids and not args.dry_run:
+        from netracare.agents.booking.agent import BookingAgent
+        from netracare.agents.booking.checkpoint import make_checkpointer
+
+        BookingAgent(make_checkpointer(settings)).purge(list(r.session_ids))
     verb = "would delete" if args.dry_run else "deleted"
     print(f"{verb} {r.sessions} conversations older than {days} days "
           f"({r.messages} messages, {r.handoffs} handoffs)")  # fmt: skip

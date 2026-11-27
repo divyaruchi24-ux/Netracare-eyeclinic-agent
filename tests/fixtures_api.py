@@ -134,6 +134,7 @@ def api_engine(api_db_url: str) -> Iterator[Engine]:
 @pytest.fixture
 def app(api_db_url: str, api_engine: Engine, clock: MutableClock) -> FastAPI:
     # LLM off by default (rules-only triage, static eye-fact); tests opt in via `use_llm`.
+    from netracare.agents.booking.checkpoint import memory_checkpointer
     from netracare.rag.embeddings import HashingEmbedder
     from tests.fixtures_rag import hashing_store_from_db
 
@@ -144,6 +145,7 @@ def app(api_db_url: str, api_engine: Engine, clock: MutableClock) -> FastAPI:
         llm_provider=DisabledProvider(),
         embedder=HashingEmbedder(),
         vector_store=hashing_store_from_db(make_session_factory(api_engine)),
+        agent_checkpointer=memory_checkpointer(),
     )
     app.state.llm_sleep = lambda _s: None
     return app

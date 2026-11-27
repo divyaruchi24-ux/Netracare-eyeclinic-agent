@@ -248,6 +248,24 @@ class BookingService:
             red_flag_level=red_flag_level,
         )
 
+    def preview_approval(
+        self,
+        actor: CurrentUser,
+        patient_id: str,
+        appt_type: AppointmentType,
+        start_utc: datetime,
+        *,
+        is_change: bool,
+        red_flag_level: RedFlagLevel | None = None,
+    ) -> list[str]:
+        """The approval reasons a booking/change would get, without writing anything (used by
+        the booking agent's read-back, so the patient knows before saying yes)."""
+        patient = self.access.assert_can_act_for_patient(actor, patient_id)
+        ctx = self._context(
+            actor, patient, appt_type, start_utc, is_change=is_change, red_flag_level=red_flag_level
+        )
+        return sorted(r.value for r in requires_approval(ctx))
+
     def _doctor(self, doctor_id: str) -> Doctor:
         doctor = self.s.get(Doctor, doctor_id)
         if doctor is None:

@@ -6,13 +6,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Header, Request, status
 
-from netracare.api.deps import ClockDep, DbSession, IndexDep, LLMDep, SettingsDep
+from netracare.api.deps import AgentDep, ClockDep, DbSession, IndexDep, LLMDep, SettingsDep
 from netracare.api.schemas.chat import (
+    AgentOptionOut,
     ChatMessageIn,
     ChatMessageOut,
     ChatSessionOut,
     ChatTurnOut,
     CitationOut,
+    ReadbackOut,
     SuggestedActionOut,
 )
 from netracare.api.security import OptionalUserDep
@@ -57,6 +59,9 @@ def turn_out(t: ChatTurn) -> ChatTurnOut:
         suggested_action=SuggestedActionOut(**t.suggested_action) if t.suggested_action else None,
         session_status=t.session_status,
         message_id=t.message_id,
+        options=[AgentOptionOut.from_option(o) for o in t.options],
+        readback=ReadbackOut(**t.readback) if t.readback else None,
+        agent_step=t.agent_step,
     )
 
 
@@ -72,6 +77,7 @@ def message_out(m: ChatMessage) -> ChatMessageOut:
         citations=citations,
         disclaimers=disclaimers_for(citations) if citations else [],  # type: ignore[arg-type]
         safety=m.safety,
+        agent=m.agent,
         created_at=m.created_at,
     )
 
@@ -102,9 +108,14 @@ def _limit(request: Request, user: CurrentUser | None, clock: ClockDep) -> None:
 
 
 def _svc(
-    db: DbSession, clock: ClockDep, settings: SettingsDep, llm: LLMDep, index: IndexDep
+    db: DbSession,
+    clock: ClockDep,
+    settings: SettingsDep,
+    llm: LLMDep,
+    index: IndexDep,
+    agent: AgentDep = None,
 ) -> ChatService:
-    return ChatService(db, clock, settings, llm, index)
+    return ChatService(db, clock, settings, llm, index, agent=agent)
 
 
 @router.post("", response_model=ChatSessionOut, status_code=status.HTTP_201_CREATED)
@@ -149,10 +160,11 @@ def post_message(
     settings: SettingsDep,
     llm: LLMDep,
     index: IndexDep,
+    agent: AgentDep,
     x_chat_token: ChatToken = None,
 ) -> ChatTurnOut:
     _limit(request, user, clock)
-    turn = _svc(db, clock, settings, llm, index).post_message(
+    turn = _svc(db, clock, settings, llm, index, agent).post_message(
         session_id, body.text, actor=user, anon_token=x_chat_token
     )
     return turn_out(turn)

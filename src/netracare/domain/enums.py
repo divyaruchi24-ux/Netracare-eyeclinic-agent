@@ -199,3 +199,33 @@ class HandoffReason(StrEnum):
     FRUSTRATION = "frustration"
     SPAM = "spam"
     BUDGET = "budget"
+
+
+class BookingAction(StrEnum):
+    BOOK = "book"
+    RESCHEDULE = "reschedule"
+    CANCEL = "cancel"
+    LIST = "list"
+    NONE = "none"
+
+
+class AgentStep(StrEnum):
+    COLLECT = "collect"
+    PROPOSE = "propose"
+    READBACK = "readback"
+    AWAITING_STAFF = "awaiting_staff"
+    DONE = "done"
+    ABORTED = "aborted"
+    PAUSED_SAFETY = "paused_safety"
+    EXPIRED = "expired"
+
+
+class AgentTurnKind(StrEnum):
+    QUESTION = "question"
+    OPTIONS = "options"
+    READBACK = "readback"
+    CONFIRMED = "confirmed"
+    PENDING = "pending"
+    DECIDED = "decided"
+    INFO = "info"
+    ERROR = "error"

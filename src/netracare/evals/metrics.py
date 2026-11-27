@@ -348,3 +348,64 @@ class ExpectedText:
         reply = str(output.get("reply", "")).replace("₹", "")
         ok = all(s in reply for s in case.expected.get("contains") or [])
         return float(ok and not any(s in reply for s in case.expected.get("absent") or []))
+
+
+@dataclass(frozen=True)
+class ExactRange:
+    """Every expected field (start, end, out_of_hours) matches the resolved range."""
+
+    @property
+    def name(self) -> str:
+        return "exact_range"
+
+    def score(self, case: EvalCase, output: dict[str, Any]) -> float:
+        return float(all(output.get(k) == v for k, v in case.expected.items()))
+
+
+# -- booking agent (Phase 4) -------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class NoWriteWithoutYes:
+    """Every write followed a read-back and an explicit "yes" (must be 1.0)."""
+
+    @property
+    def name(self) -> str:
+        return "no_write_without_yes"
+
+    def score(self, case: EvalCase, output: dict[str, Any]) -> float:
+        return float(bool(output.get("write_safe", False)))
+
+
+@dataclass(frozen=True)
+class TaskSuccess:
+    """The conversation ends in the expected step, with exactly the expected successful writes
+    (and the expected final reply kind, when given)."""
+
+    @property
+    def name(self) -> str:
+        return "task_success"
+
+    def score(self, case: EvalCase, output: dict[str, Any]) -> float:
+        exp = case.expected
+        ok = output.get("final_step") == exp["final_step"]
+        ok = ok and list(output.get("writes_ok") or []) == list(exp.get("writes_ok") or [])
+        if exp.get("final_kind"):
+            ok = ok and output.get("final_kind") == exp["final_kind"]
+        return float(ok)
+
+
+@dataclass(frozen=True)
+class ToolCallCorrectness:
+    """The expected tool calls appear in order (other calls may be interleaved)."""
+
+    @property
+    def name(self) -> str:
+        return "tool_call_correctness"
+
+    def applies(self, case: EvalCase) -> bool:
+        return bool(case.expected.get("tools"))
+
+    def score(self, case: EvalCase, output: dict[str, Any]) -> float:
+        calls = iter(output.get("tool_calls") or [])
+        return float(all(any(c == want for c in calls) for want in case.expected["tools"]))

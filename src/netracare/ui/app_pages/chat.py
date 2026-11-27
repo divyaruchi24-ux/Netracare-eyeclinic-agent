@@ -53,8 +53,12 @@ def _render_assistant(m: dict[str, Any], *, latest: bool) -> None:
     _sources(m)
     for d in m.get("disclaimers") or []:
         st.caption(d)
+    agent = m.get("agent") or {}
+    if agent.get("kind") == "pending":
+        st.badge("Awaiting front desk", icon=":material/hourglass_top:", color="orange")
     if not latest:
         return
+    _agent_controls(m, agent)
     action = m.get("suggested_action")
     if action and action.get("type") == "book":
         doctor = action.get("doctor_name")
@@ -74,6 +78,38 @@ def _render_assistant(m: dict[str, Any], *, latest: bool) -> None:
             done = call(client.chat_handoff, st.session_state[SESSION_KEY])
             if done:
                 st.success(md_lines(done["reply"]), icon=":material/check:")
+
+
+def _send(text: str) -> None:
+    turn = call(client.chat_send, st.session_state[SESSION_KEY], text)
+    if turn:
+        st.session_state["chat_last_turn"] = turn
+    st.rerun()
+
+
+def _agent_controls(m: dict[str, Any], agent: dict[str, Any]) -> None:
+    """Booking-agent buttons: proposed times, and Yes / No / Change on a read-back. Buttons send
+    exactly what a typed reply would ("option:<id>", "yes"), so the agent's rules are the same."""
+    options = m.get("options") or agent.get("options") or []
+    readback = m.get("readback") or agent.get("readback")
+    msg = m.get("id") or m.get("message_id") or "latest"
+    if options and not readback:
+        cols = st.container(horizontal=True)
+        with cols:
+            for o in options:
+                if st.button(o["label"], key=f"opt_{msg}_{o['id']}", icon=":material/schedule:"):
+                    _send(f"option:{o['id']}")
+    if readback:
+        if readback.get("needs_approval"):
+            st.caption("This request will go to the front desk for approval.")
+        row = st.container(horizontal=True)
+        with row:
+            if st.button("Yes, book it", key=f"yes_{msg}", type="primary", icon=":material/check:"):
+                _send("yes")
+            if st.button("No", key=f"no_{msg}", icon=":material/close:"):
+                _send("no")
+            if st.button("Change", key=f"change_{msg}", icon=":material/edit:"):
+                _send("I'd like a different time")
 
 
 session_id = st.session_state.get(SESSION_KEY) or _new_session()
@@ -114,6 +150,8 @@ for i, m in enumerate(messages):
                 merged.update(
                     suggested_action=last_turn.get("suggested_action"),
                     handoff_offer=last_turn.get("handoff_offer"),
+                    options=last_turn.get("options"),
+                    readback=last_turn.get("readback"),
                 )
             _render_assistant(merged, latest=latest)
 

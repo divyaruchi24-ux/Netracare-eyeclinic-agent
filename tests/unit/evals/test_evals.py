@@ -254,6 +254,7 @@ def test_live_suites_flagged_and_prompt_versions_scoped() -> None:
         "visit_summary_live",
         "router_llm",
         "rag_answer_live",
+        "booking_agent_live",
     }
     pv = prompt_versions(SETTINGS, SUITES["safety_redflags_llm"], ROOT)
     assert set(pv) == {"red_flag_classifier", "json_repair"}

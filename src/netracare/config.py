@@ -86,6 +86,15 @@ class Settings(BaseSettings):
     alert_dedup_minutes: int = Field(default=10, ge=0)
     chat_retention_days: int = Field(default=90, ge=1)
 
+    # Booking agent (Phase 4)
+    agent_checkpoint_path: str = "./data/agent_checkpoints.db"
+    agent_options_count: int = Field(default=3, ge=1, le=6)
+    agent_proposal_ttl_minutes: int = Field(default=30, ge=1)
+    agent_flow_expiry_hours: int = Field(default=24, ge=1)
+    agent_search_days: int = Field(default=14, ge=1, le=56)
+    agent_max_tool_failures: int = Field(default=2, ge=1)
+    approval_overdue_hours: float = Field(default=4.0, gt=0)
+
     # Budgets (USD)
     monthly_llm_budget_usd: float = Field(default=20.0, ge=0)
     daily_llm_budget_usd: float = Field(default=1.5, ge=0)

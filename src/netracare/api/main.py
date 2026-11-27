@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,6 +36,7 @@ def create_app(
     embedder: Embedder | None = None,
     vector_store: VectorStore | None = None,
     reranker: Reranker | None = None,
+    agent_checkpointer: Any = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     assert_safe_secrets(settings)
@@ -63,6 +65,15 @@ def create_app(
     app.state.rag_store = vector_store
     app.state.rag_reranker = reranker
     app.state.retrieval_index = None
+    # Booking agent (Phase 4): checkpoints in their own SQLite file (tests pass a memory saver)
+    from netracare.agents.booking.agent import BookingAgent
+    from netracare.agents.booking.checkpoint import make_checkpointer
+    from netracare.agents.booking.hitl import make_decision_hook
+
+    app.state.booking_agent = BookingAgent(agent_checkpointer or make_checkpointer(settings))
+    app.state.approval_hooks = [
+        make_decision_hook(app.state.booking_agent, settings, app.state.clock)
+    ]
     app.state.chat_limiter = SlidingWindowLimiter(
         settings.chat_rate_limit_per_min, timedelta(minutes=1)
     )

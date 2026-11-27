@@ -328,8 +328,13 @@ class TriageService:
             return None, "rules"
         chain = build_chain(self.llm, actor_user_id=actor.id if actor else None, names=names)
         try:
-            with outside_transaction(self.s):
+            if self.s.in_nested_transaction():
+                # Called inside a savepoint (e.g. a booking-agent tool): committing here would end
+                # it, so the classifier runs within the transaction (one short LLM call).
                 out = chain.invoke(text)
+            else:
+                with outside_transaction(self.s):
+                    out = chain.invoke(text)
         except LLMError as exc:
             log.warning("triage.llm_fallback", error=exc.code, rules_level=str(rules_level))
             return None, "rules_fallback"

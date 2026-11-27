@@ -39,7 +39,15 @@ Each phase links to its detailed `task.md`. A phase box is ticked only when all 
   - [x] ChatService, sessions, handoffs, alert dedup; API + permission matrix
   - [x] UI (Ask NetraCare, Chat handoffs, Knowledge base), live evals in Opik
   - [x] Tests, RETRO, commit `phase-3: ...`
-- [ ] **Phase 4 — Booking agent (LangGraph)** → phase-4/task.md
+- [x] **Phase 4 — Booking agent (LangGraph)** → [phase-4/task.md](phase-4/task.md)
+  - [x] Planning docs written
+  - [x] Planning docs approved
+  - [x] Relative dates + tools (idempotent, service-backed)
+  - [x] NLU, explicit-yes gate, LangGraph graph, SQLite checkpointing
+  - [x] HITL: approve / edit / reject + resume hook + overdue notice
+  - [x] Chat integration, API, UI
+  - [x] Evals (offline conversation gate, live Groq), smoke test
+  - [x] Tests, RETRO, commit `phase-4: ...`
 - [ ] **Phase 5 — Evals & LLMOps (Opik)** → phase-5/task.md
 - [ ] **Phase 6 — MCP & Agent Skills** → phase-6/task.md
 - [ ] **Phase 7 — Hardening & polish** → phase-7/task.md
@@ -55,7 +63,7 @@ Each phase links to its detailed `task.md`. A phase box is ticked only when all 
 | Ambiguous symptoms → clarify / general ophthalmology | 3 | 5 |
 | Race on same slot, double-submit, duplicate booking | 0 (constraints), 1 | 1 (tests) |
 | Doctor leave / removed slot after proposal, holidays, past dates, out-of-hours | 0–1, 4 | 4–5 |
-| Relative dates & tz/DST | 0 (Clock), 4 | 4–5 |
+| Relative dates & tz/DST | 0 (Clock), 4 (`relative_dates` gate) | 4–5 |
 | Policy-window reschedule/cancel, no-show history, cross-patient authZ | 1 | 1, 5 |
 | Mind change / abandon / resume | 4 | 5 |
 | Tool failure mid-transaction | 1, 4 | 4 |

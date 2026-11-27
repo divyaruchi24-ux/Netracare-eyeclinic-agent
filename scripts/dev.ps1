@@ -47,6 +47,7 @@ switch ($Task) {
         Uv run python -m netracare.evals run visit_summary_live --live --upload
         Uv run python -m netracare.evals run router_llm --live --upload
         Uv run python -m netracare.evals run rag_answer_live --live --upload
+        Uv run python -m netracare.evals run booking_agent_live --live --upload
     }
     "groq-smoke" { Uv run python scripts/groq_smoke.py }
     "requirements" {

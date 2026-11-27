@@ -26,12 +26,15 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from netracare.agents.booking import templates as agent_tpl
+from netracare.agents.booking.agent import BookingAgent
+from netracare.agents.booking.state import AgentRuntime
 from netracare.agents.router import RouteDecision, Router
 from netracare.agents.router_rules import Layer1Decision, layer1
 from netracare.agents.specialist import RoutingOutcome, SpecialistRouter
 from netracare.config import Settings
 from netracare.db.models import ChatHandoff, ChatMessage, ChatSession, Patient
-from netracare.db.session import outside_transaction
+from netracare.db.session import begin_write, outside_transaction
 from netracare.domain.actor import CurrentUser
 from netracare.domain.clock import Clock
 from netracare.domain.enums import (
@@ -62,6 +65,10 @@ _NEGATIVE = re.compile(
     re.IGNORECASE,
 )
 FRUSTRATION_TURNS = 2
+_QUESTION = re.compile(
+    r"\?\s*$|^\s*(how|what|when|where|which|who|do you|does|is there|can i)\b", re.I
+)
+_BOOKING_WORDS = re.compile(r"\b(book\w*|appointment|slot|reschedul\w*|see (a|the) doctor)\b", re.I)
 _CHIT_CHAT_REPLIES = {
     "empty": scripts.EMPTY_REPLY,
     "greeting": scripts.GREETING_REPLY,
@@ -88,6 +95,9 @@ class ChatTurn:
     suggested_action: dict[str, Any] | None = None
     session_status: ChatSessionStatus = ChatSessionStatus.ACTIVE
     message_id: str | None = None
+    options: list[dict[str, Any]] = field(default_factory=list)  # booking agent
+    readback: dict[str, Any] | None = None
+    agent_step: str | None = None
     llm_call_ids: list[str] = field(default_factory=list)
     cost_usd: float = 0.0
     flags: list[str] = field(default_factory=list)
@@ -136,6 +146,7 @@ class ChatService:
         settings: Settings,
         llm: LLMClient | None,
         index: RetrievalIndex,
+        agent: BookingAgent | None = None,
     ) -> None:
         self.s = session
         self.clock = clock
@@ -145,6 +156,7 @@ class ChatService:
         self.triage = TriageService(session, clock, settings, llm)
         self.directory = DirectoryService(session, clock)
         self.handoffs = HandoffService(session, clock)
+        self.agent = agent
 
     # -- sessions -----------------------------------------------------------------------
     def create_session(self, actor: CurrentUser | None) -> tuple[ChatSession, str | None]:
@@ -266,6 +278,23 @@ class ChatService:
 
     # -- dispatch ---------------------------------------------------------------------------
     def _dispatch(self, ctx: _Ctx, d1: Layer1Decision) -> ChatTurn:
+        agent_ok = self.agent is not None and self._agent_patient(ctx)
+        thread = ctx.chat.id
+        if agent_ok and self.agent is not None:
+            if d1.intent is ChatIntent.EMERGENCY and self.agent.is_active(thread):
+                self.agent.pause_for_safety(thread)  # policy 5.1: the booking flow pauses
+            elif self.agent.wants_resume(thread, ctx.text):
+                return self._agent_turn(ctx)
+            elif d1.intent is None and self.agent.is_active(thread):
+                if _QUESTION.search(ctx.text):
+                    route = self._route(ctx)
+                    if route.intent in _RAG_INTENTS and route.confidence >= (
+                        self.settings.router_confidence_threshold
+                    ):
+                        turn = self._rag(ctx, route)
+                        turn.reply = f"{turn.reply}\n\n{agent_tpl.CONTINUE_LATER}"
+                        return turn
+                return self._agent_turn(ctx)
         if d1.intent is ChatIntent.EMERGENCY:
             return self._triage_turn(ctx, ctx.text)
         if d1.intent is ChatIntent.MEDICAL_QUESTION:
@@ -299,6 +328,8 @@ class ChatService:
         ctx.clear_pending = True
 
         if route.intent is ChatIntent.BOOKING:
+            if agent_ok:
+                return self._agent_turn(ctx)
             return self._booking(ctx, route)
         if route.intent is ChatIntent.MEDICAL_QUESTION:
             return self._medical(ctx, "your symptoms", route, None)
@@ -360,6 +391,14 @@ class ChatService:
         }
         if result.level is RedFlagLevel.EMERGENCY:
             return ChatTurn(result.message, ChatIntent.EMERGENCY, "script", safety=safety)
+        if self.agent is not None and self._agent_patient(ctx) and _BOOKING_WORDS.search(ctx.text):
+            # Urgent + "book me": the script first, then the agent's options (the booking will
+            # need staff approval: post_red_flag).
+            agent_turn = self._agent_turn(ctx)
+            agent_turn.reply = f"{result.message}\n\n{agent_turn.reply}"
+            agent_turn.intent = ChatIntent.EMERGENCY
+            agent_turn.safety = safety
+            return agent_turn
         outcome = self._specialist().route(ctx.text, codes=result.codes)
         reply = result.message
         action = None
@@ -410,6 +449,44 @@ class ChatService:
             reply = scripts.BOOKING_HANDOFF_GENERIC
             action = {"type": "book", "specialty": None, "doctor_id": None, "doctor_name": None}
         return ChatTurn(reply, ChatIntent.BOOKING, "fixed", suggested_action=action)
+
+    def _agent_patient(self, ctx: _Ctx) -> bool:
+        return ctx.actor is not None and ctx.actor.role is Role.PATIENT
+
+    def _agent_turn(self, ctx: _Ctx) -> ChatTurn:
+        """One booking-agent turn. The request's write transaction is released while the agent
+        runs (it makes LLM calls); the agent takes a fresh write transaction right before a
+        write, and a new one is opened afterwards for the chat messages."""
+        if self.agent is None or ctx.actor is None:  # pragma: no cover - guarded by callers
+            raise RuntimeError("booking agent unavailable")
+        rt = AgentRuntime(
+            self.s,
+            self.clock,
+            self.settings,
+            ctx.actor,
+            ctx.chat.id,
+            ctx.llm,
+            chat_session=ctx.chat,
+        )
+        self.s.commit()
+        try:
+            t = self.agent.handle(rt, ctx.text)
+        finally:
+            self.s.commit()
+            begin_write(self.s)
+        ctx.call_ids += t.llm_call_ids
+        ctx.cost += t.cost_usd
+        ctx.clear_pending = True
+        return ChatTurn(
+            t.text,
+            ChatIntent.BOOKING,
+            "agent",
+            safety=t.safety,
+            options=t.options,
+            readback=t.readback,
+            agent_step=t.step,
+            flags=[f"agent:{t.kind}"],
+        )
 
     def _book_action(self, outcome: RoutingOutcome) -> dict[str, Any] | None:
         if outcome.doctor_id is None:
@@ -554,6 +631,18 @@ class ChatService:
             citations=[c.to_json() for c in turn.citations],
             safety=turn.safety,
             llm_call_ids=ctx.call_ids,
+            agent=(
+                {
+                    "options": turn.options,
+                    "readback": turn.readback,
+                    "step": turn.agent_step,
+                    "kind": next(
+                        (f.split(":", 1)[1] for f in turn.flags if f.startswith("agent:")), None
+                    ),
+                }
+                if turn.agent_step
+                else None
+            ),
             created_at=now,
         )
         self.s.add(assistant)
@@ -584,4 +673,8 @@ class ChatService:
             self.s.flush()
         turn.session_status = chat.status
         turn.message_id = assistant.id
+        if self.agent is not None and self._agent_patient(ctx):
+            from netracare.agents.booking.hitl import overdue_for_chat
+
+            overdue_for_chat(self.s, chat.id, self.settings, self.clock)  # policy 12, once
         return turn

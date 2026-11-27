@@ -88,7 +88,7 @@ jobs:
           key: fastembed-bge-small-en-v1.5-ms-marco-MiniLM-L-6-v2-v1
       - if: env.OPIK_API_KEY != ''
         run: |
-          for suite in booking_policy safety_redflags_rules eye_fact_safety visit_summary_v0 rag_retrieval router_rules; do
+          for suite in booking_policy safety_redflags_rules eye_fact_safety visit_summary_v0 rag_retrieval router_rules relative_dates booking_agent_offline; do
             uv run python -m netracare.evals run "$suite" --upload
           done
       - if: env.OPIK_API_KEY != '' && env.GROQ_API_KEY != ''
@@ -97,6 +97,7 @@ jobs:
           uv run python -m netracare.evals run visit_summary_live --live --upload
           uv run python -m netracare.evals run router_llm --live --upload
           uv run python -m netracare.evals run rag_answer_live --live --upload
+          uv run python -m netracare.evals run booking_agent_live --live --upload
       - if: env.OPIK_API_KEY == ''
         run: echo "OPIK_API_KEY secret not set - skipping Opik upload"
 

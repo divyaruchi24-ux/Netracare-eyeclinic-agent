@@ -164,3 +164,14 @@ Rule: **agents → services → repositories → DB**. UI → API only. MCP tool
     - E7 needs "sudden", a nerve sign or a headache for a drooping lid;
     - the medical-question detector no longer refuses preparation and logistics questions.
   - **Log redaction** no longer masks digits inside identifiers.
+- **2026-11-27** - **Phase 4 plan approved** (details in [phase-4/understanding.md](phase-4/understanding.md)):
+  - The LangGraph booking agent lives inside the chat.
+  - The LLM only understands the turn; dates are resolved by code, read-backs are fixed templates, and code decides what counts as an explicit "yes".
+  - SQLite checkpointing uses a separate file.
+  - HITL reuses the approval queue, with a new Edit action.
+  - Defaults: linked patients only, 3 options, pending bookings hold their slot.
+- **2026-11-27** - **Phase 4 complete** ([phase-4/RETRO.md](phase-4/RETRO.md)):
+  - **Graph shape:** one LangGraph run per patient turn, with state checkpointed in SQLite. The HITL wait is persisted state resumed by an event, instead of `interrupt()` across HTTP requests.
+  - **Write safety:** code decides the explicit yes. Tools are idempotent and wrapped in savepoints.
+  - **Front desk:** "Edit" approves a request at a different time (`approve_with_changes`).
+  - **Public template:** `.env.example` repaired after a hand edit, and now guarded by a test.

@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
 from netracare.config import Settings
-from netracare.db.models import Appointment, ApprovalRequest
+from netracare.db.models import Appointment, AppointmentSlot, ApprovalRequest, Doctor, Slot
 from netracare.domain.actor import CurrentUser
 from netracare.domain.clock import Clock
 from netracare.domain.enums import (
@@ -20,7 +23,14 @@ from netracare.domain.enums import (
     Role,
 )
 from netracare.domain.state_machine import transition
-from netracare.errors import ConflictError, ForbiddenError, NotFoundError, require
+from netracare.errors import (
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+    ValidationAppError,
+    require,
+)
+from netracare.log import get_logger
 from netracare.observability.tracing import traced
 from netracare.repositories.appointment_repo import AppointmentRepository
 from netracare.services.access import AccessPolicy
@@ -28,7 +38,13 @@ from netracare.services.audit_service import AuditService
 from netracare.services.booking_service import appointment_snapshot
 from netracare.services.notification_service import NotificationService
 
-OVERDUE_AFTER = timedelta(hours=4)
+log = get_logger(__name__)
+OVERDUE_AFTER = timedelta(hours=4)  # default; ApprovalService uses APPROVAL_OVERDUE_HOURS
+
+# Called after every decision with (session, request, decision, extra); decision is
+# "approved" | "changed" | "rejected". The app registers the booking agent's resume hook here.
+DecisionHook = Callable[[Session, ApprovalRequest, str, dict[str, Any]], None]
+DECISION_HOOKS: list[DecisionHook] = []
 
 
 @dataclass(frozen=True)
@@ -55,12 +71,21 @@ def _decision_outputs(v: ApprovalView) -> dict[str, object]:
 
 
 class ApprovalService:
-    def __init__(self, session: Session, clock: Clock, settings: Settings) -> None:
+    def __init__(
+        self,
+        session: Session,
+        clock: Clock,
+        settings: Settings,
+        hooks: list[DecisionHook] | None = None,
+    ) -> None:
         self.s = session
         self.clock = clock
         self.appts = AppointmentRepository(session)
         self.audit = AuditService(session)
         self.notify = NotificationService(session, settings.tz)
+        self.settings = settings
+        self.hooks = DECISION_HOOKS if hooks is None else hooks
+        self.overdue_after = timedelta(hours=settings.approval_overdue_hours)
 
     def _view(self, req: ApprovalRequest) -> ApprovalView:
         appt = require(self.s.get(Appointment, req.appointment_id), "appointment_not_found")
@@ -71,7 +96,7 @@ class ApprovalService:
         )
         overdue = (
             req.status is ApprovalStatus.PENDING
-            and self.clock.now_utc() - req.created_at > OVERDUE_AFTER
+            and self.clock.now_utc() - req.created_at > self.overdue_after
         )
         return ApprovalView(req, appt, target, overdue)
 
@@ -128,6 +153,13 @@ class ApprovalService:
     def approve(self, actor: CurrentUser, request_id: str, note: str | None = None) -> ApprovalView:
         self._staff(actor)
         req = self._pending(request_id)
+        view = self._approve(actor, req, note, "approval_approved")
+        self._fire(req, "approved", {"note": note})
+        return view
+
+    def _approve(
+        self, actor: CurrentUser, req: ApprovalRequest, note: str | None, template: str
+    ) -> ApprovalView:
         view = self._view(req)
         appt, target = view.appointment, view.target
         starts = (target or appt).start_utc
@@ -161,11 +193,90 @@ class ApprovalService:
             },
             reason=note,
         )
-        template = (
-            "appointment_cancelled" if req.kind is ApprovalKind.CANCEL else "approval_approved"
-        )
+        if req.kind is ApprovalKind.CANCEL:
+            template = "appointment_cancelled"
         self.notify.for_appointment(notify_appt, template)
         return self._view(req)
+
+    @traced(
+        "approval.approve_with_changes",
+        tags=["approval"],
+        inputs=_decision_inputs,
+        outputs=_decision_outputs,
+    )
+    def approve_with_changes(
+        self,
+        actor: CurrentUser,
+        request_id: str,
+        new_slot_ids: Sequence[str],
+        note: str | None = None,
+    ) -> ApprovalView:
+        """Approve at a different time (and possibly another doctor): the pending appointment's
+        held slots are swapped for `new_slot_ids` and it is confirmed, in one transaction."""
+        from netracare.services.booking_service import BookingService
+
+        self._staff(actor)
+        req = self._pending(request_id)
+        if req.kind is ApprovalKind.CANCEL:
+            raise ValidationAppError(
+                "not_editable", "a cancellation request can only be approved or rejected"
+            )
+        if not new_slot_ids:
+            raise ValidationAppError("slot_ids_required", "choose the new time first")
+        view = self._view(req)
+        pending = require(
+            view.target if req.kind is ApprovalKind.RESCHEDULE else view.appointment,
+            "appointment_not_found",
+        )
+        first = require(self.s.get(Slot, new_slot_ids[0]), "slot_not_found")
+        slots = BookingService(self.s, self.clock, self.settings)._load_slots(
+            first.doctor_id, new_slot_ids, pending.type, self.clock.now_utc()
+        )
+        before = appointment_snapshot(pending)
+        self.appts.release_slots(pending.id)
+        try:
+            with self.s.begin_nested():
+                for slot in slots:
+                    hold = self.s.get(AppointmentSlot, (pending.id, slot.id))
+                    if hold is not None:
+                        hold.active = True
+                    else:
+                        self.s.add(
+                            AppointmentSlot(appointment_id=pending.id, slot_id=slot.id, active=True)
+                        )
+                self.s.flush()
+        except IntegrityError as exc:
+            raise ConflictError("slot_unavailable", "that time is no longer available") from exc
+        pending.doctor_id = first.doctor_id
+        pending.start_utc, pending.end_utc = slots[0].start_utc, slots[-1].end_utc
+        self.audit.record(
+            actor,
+            "approval.approve_with_changes",
+            "approval_request",
+            req.id,
+            before=before,
+            after=appointment_snapshot(pending),
+            reason=note,
+        )
+        out = self._approve(actor, req, note, "approval_changed")
+        doctor = self.s.get(Doctor, pending.doctor_id)
+        self._fire(
+            req,
+            "changed",
+            {
+                "note": note,
+                "start_local": pending.start_utc.astimezone(self.settings.tz).isoformat(),
+                "doctor_name": doctor.full_name if doctor else None,
+            },
+        )
+        return out
+
+    def _fire(self, req: ApprovalRequest, decision: str, extra: dict[str, Any]) -> None:
+        for hook in list(self.hooks):
+            try:
+                hook(self.s, req, decision, extra)
+            except Exception as exc:  # a hook must never undo or block a staff decision
+                log.warning("approval.hook_failed", error=type(exc).__name__, request_id=req.id)
 
     @traced(
         "approval.reject", tags=["approval"], inputs=_decision_inputs, outputs=_decision_outputs
@@ -200,6 +311,7 @@ class ApprovalService:
             reason=note,
         )
         self.notify.for_appointment(notify_appt, "approval_rejected")
+        self._fire(req, "rejected", {"note": note})
         return self._view(req)
 
     def withdraw(self, actor: CurrentUser, request_id: str) -> ApprovalView:

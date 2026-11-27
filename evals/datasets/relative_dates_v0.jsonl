@@ -1,0 +1,58 @@
+{"id": "rd-001", "input": {"phrase": "today", "today": "2026-11-10"}, "expected": {"start": "2026-11-10", "end": "2026-11-10"}, "tags": ["date"]}
+{"id": "rd-002", "input": {"phrase": "tomorrow", "today": "2026-11-10"}, "expected": {"start": "2026-11-11", "end": "2026-11-11"}, "tags": ["date"]}
+{"id": "rd-003", "input": {"phrase": "day after tomorrow", "today": "2026-11-10"}, "expected": {"start": "2026-11-12", "end": "2026-11-12"}, "tags": ["date"]}
+{"id": "rd-004", "input": {"phrase": "can I come tmrw", "today": "2026-11-10"}, "expected": {"start": "2026-11-11", "end": "2026-11-11"}, "tags": ["date", "typo"]}
+{"id": "rd-005", "input": {"phrase": "parso", "today": "2026-11-10"}, "expected": {"start": "2026-11-12", "end": "2026-11-12"}, "tags": ["date", "hinglish"]}
+{"id": "rd-006", "input": {"phrase": "Friday", "today": "2026-11-10"}, "expected": {"start": "2026-11-13", "end": "2026-11-13"}, "tags": ["date"]}
+{"id": "rd-007", "input": {"phrase": "this friday", "today": "2026-11-10"}, "expected": {"start": "2026-11-13", "end": "2026-11-13"}, "tags": ["date"]}
+{"id": "rd-008", "input": {"phrase": "on Tuesday", "today": "2026-11-10"}, "expected": {"start": "2026-11-10", "end": "2026-11-10"}, "tags": ["date", "same_weekday"]}
+{"id": "rd-009", "input": {"phrase": "next Tuesday", "today": "2026-11-10"}, "expected": {"start": "2026-11-17", "end": "2026-11-17"}, "tags": ["date"]}
+{"id": "rd-010", "input": {"phrase": "next monday", "today": "2026-11-10"}, "expected": {"start": "2026-11-16", "end": "2026-11-16"}, "tags": ["date"]}
+{"id": "rd-011", "input": {"phrase": "next friday", "today": "2026-11-10"}, "expected": {"start": "2026-11-20", "end": "2026-11-20"}, "tags": ["date", "next_rule"]}
+{"id": "rd-012", "input": {"phrase": "coming thursday", "today": "2026-11-10"}, "expected": {"start": "2026-11-12", "end": "2026-11-12"}, "tags": ["date"]}
+{"id": "rd-013", "input": {"phrase": "sat", "today": "2026-11-10"}, "expected": {"start": "2026-11-14", "end": "2026-11-14"}, "tags": ["date"]}
+{"id": "rd-014", "input": {"phrase": "next tues", "today": "2026-11-10"}, "expected": {"start": "2026-11-17", "end": "2026-11-17"}, "tags": ["date"]}
+{"id": "rd-015", "input": {"phrase": "this weekend", "today": "2026-11-10"}, "expected": {"start": "2026-11-14", "end": "2026-11-14"}, "tags": ["date"]}
+{"id": "rd-016", "input": {"phrase": "this weekend", "today": "2026-11-14"}, "expected": {"start": "2026-11-14", "end": "2026-11-14"}, "tags": ["date", "anchor_sat"]}
+{"id": "rd-017", "input": {"phrase": "weekend", "today": "2026-11-15"}, "expected": {"start": "2026-11-21", "end": "2026-11-21"}, "tags": ["date", "anchor_sun"]}
+{"id": "rd-018", "input": {"phrase": "next weekend", "today": "2026-11-10"}, "expected": {"start": "2026-11-21", "end": "2026-11-21"}, "tags": ["date"]}
+{"id": "rd-019", "input": {"phrase": "next week", "today": "2026-11-10"}, "expected": {"start": "2026-11-16", "end": "2026-11-21"}, "tags": ["date"]}
+{"id": "rd-020", "input": {"phrase": "this week", "today": "2026-11-10"}, "expected": {"start": "2026-11-10", "end": "2026-11-14"}, "tags": ["date"]}
+{"id": "rd-021", "input": {"phrase": "next week", "today": "2026-11-15"}, "expected": {"start": "2026-11-16", "end": "2026-11-21"}, "tags": ["date", "anchor_sun"]}
+{"id": "rd-022", "input": {"phrase": "in 3 days", "today": "2026-11-10"}, "expected": {"start": "2026-11-13", "end": "2026-11-13"}, "tags": ["date"]}
+{"id": "rd-023", "input": {"phrase": "in a week", "today": "2026-11-10"}, "expected": {"start": "2026-11-17", "end": "2026-11-17"}, "tags": ["date"]}
+{"id": "rd-024", "input": {"phrase": "in two weeks", "today": "2026-11-10"}, "expected": {"start": "2026-11-24", "end": "2026-11-24"}, "tags": ["date"]}
+{"id": "rd-025", "input": {"phrase": "12 dec", "today": "2026-11-10"}, "expected": {"start": "2026-12-12", "end": "2026-12-12"}, "tags": ["date"]}
+{"id": "rd-026", "input": {"phrase": "12th December", "today": "2026-11-10"}, "expected": {"start": "2026-12-12", "end": "2026-12-12"}, "tags": ["date"]}
+{"id": "rd-027", "input": {"phrase": "dec 3", "today": "2026-11-10"}, "expected": {"start": "2026-12-03", "end": "2026-12-03"}, "tags": ["date"]}
+{"id": "rd-028", "input": {"phrase": "3 jan", "today": "2026-12-30"}, "expected": {"start": "2027-01-03", "end": "2027-01-03"}, "tags": ["date", "year_end"]}
+{"id": "rd-029", "input": {"phrase": "1 november", "today": "2026-11-10"}, "expected": {"start": "2027-11-01", "end": "2027-11-01"}, "tags": ["date", "passed_rolls_year"]}
+{"id": "rd-030", "input": {"phrase": "12/12", "today": "2026-11-10"}, "expected": {"start": "2026-12-12", "end": "2026-12-12"}, "tags": ["date"]}
+{"id": "rd-031", "input": {"phrase": "3/1", "today": "2026-11-10"}, "expected": {"start": "2027-01-03", "end": "2027-01-03"}, "tags": ["date", "day_first"]}
+{"id": "rd-032", "input": {"phrase": "05-12-2026", "today": "2026-11-10"}, "expected": {"start": "2026-12-05", "end": "2026-12-05"}, "tags": ["date"]}
+{"id": "rd-033", "input": {"phrase": "on the 20th", "today": "2026-11-10"}, "expected": {"start": "2026-11-20", "end": "2026-11-20"}, "tags": ["date"]}
+{"id": "rd-034", "input": {"phrase": "the 5th", "today": "2026-11-10"}, "expected": {"start": "2026-12-05", "end": "2026-12-05"}, "tags": ["date", "passed_next_month"]}
+{"id": "rd-035", "input": {"phrase": "on the 2nd", "today": "2026-11-30"}, "expected": {"start": "2026-12-02", "end": "2026-12-02"}, "tags": ["date", "month_end"]}
+{"id": "rd-036", "input": {"phrase": "tomorrow", "today": "2026-11-30"}, "expected": {"start": "2026-12-01", "end": "2026-12-01"}, "tags": ["date", "month_end"]}
+{"id": "rd-037", "input": {"phrase": "asap", "today": "2026-11-10"}, "expected": {"start": "2026-11-10", "end": "2026-11-23"}, "tags": ["date"]}
+{"id": "rd-038", "input": {"phrase": "this month", "today": "2026-11-10"}, "expected": {"start": "2026-11-10", "end": "2026-11-30"}, "tags": ["date"]}
+{"id": "rd-039", "input": {"phrase": "next Tuesday morning", "today": "2026-11-10"}, "expected": {"start": "2026-11-17", "end": "2026-11-17"}, "tags": ["date", "with_time"]}
+{"id": "rd-040", "input": {"phrase": "Tuesday", "today": "2026-12-30"}, "expected": {"start": "2027-01-05", "end": "2027-01-05"}, "tags": ["date", "year_end"]}
+{"id": "rd-041", "input": {"phrase": "monday", "today": "2026-11-15"}, "expected": {"start": "2026-11-16", "end": "2026-11-16"}, "tags": ["date", "anchor_sun"]}
+{"id": "rd-042", "input": {"phrase": "I want to book", "today": "2026-11-10"}, "expected": {"start": null, "end": null}, "tags": ["date", "none"]}
+{"id": "rd-043", "input": {"phrase": "with Dr Rao", "today": "2026-11-10"}, "expected": {"start": null, "end": null}, "tags": ["date", "none"]}
+{"id": "rd-044", "input": {"phrase": "", "today": "2026-11-10"}, "expected": {"start": null, "end": null}, "tags": ["date", "none"]}
+{"id": "rd-045", "input": {"phrase": "31 feb", "today": "2026-11-10"}, "expected": {"start": null, "end": null}, "tags": ["date", "none", "invalid"]}
+{"id": "rd-046", "input": {"phrase": "morning", "kind": "time"}, "expected": {"start": "09:00", "end": "13:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-047", "input": {"phrase": "afternoon", "kind": "time"}, "expected": {"start": "14:00", "end": "18:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-048", "input": {"phrase": "evening", "kind": "time"}, "expected": {"start": "16:00", "end": "18:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-049", "input": {"phrase": "after 4pm", "kind": "time"}, "expected": {"start": "16:00", "end": "18:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-050", "input": {"phrase": "after 4", "kind": "time"}, "expected": {"start": "16:00", "end": "18:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-051", "input": {"phrase": "before 11", "kind": "time"}, "expected": {"start": "09:00", "end": "11:00", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-052", "input": {"phrase": "around 10", "kind": "time"}, "expected": {"start": "09:30", "end": "10:30", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-053", "input": {"phrase": "at 10:30", "kind": "time"}, "expected": {"start": "10:30", "end": "10:45", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-054", "input": {"phrase": "10am", "kind": "time"}, "expected": {"start": "10:00", "end": "10:15", "out_of_hours": false}, "tags": ["time"]}
+{"id": "rd-055", "input": {"phrase": "at 8pm", "kind": "time"}, "expected": {"start": "18:00", "end": "18:00", "out_of_hours": true}, "tags": ["time", "out_of_hours"]}
+{"id": "rd-056", "input": {"phrase": "7am", "kind": "time"}, "expected": {"start": "09:00", "end": "09:00", "out_of_hours": true}, "tags": ["time", "out_of_hours"]}
+{"id": "rd-057", "input": {"phrase": "next Tuesday morning", "kind": "time"}, "expected": {"start": "09:00", "end": "13:00", "out_of_hours": false}, "tags": ["time", "with_date"]}
+{"id": "rd-058", "input": {"phrase": "subah", "kind": "time"}, "expected": {"start": "09:00", "end": "13:00", "out_of_hours": false}, "tags": ["time", "hinglish"]}

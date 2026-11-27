@@ -100,6 +100,8 @@ ROUTES: dict[tuple[str, str], frozenset[str] | str] = {
     ("GET", "/admin/kb"): ADMIN_ONLY,
     ("POST", "/admin/kb/reindex"): ADMIN_ONLY,
     ("GET", "/admin/kb/search"): ADMIN_ONLY,
+    # Phase 4: the front desk's "Edit" on an approval request
+    ("POST", "/approvals/{request_id}/approve-with-changes"): STAFF,
 }
 
 PATH_VALUES = {

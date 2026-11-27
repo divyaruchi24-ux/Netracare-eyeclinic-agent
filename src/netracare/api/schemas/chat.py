@@ -34,6 +34,32 @@ class SuggestedActionOut(Schema):
     doctor_name: str | None
 
 
+class AgentOptionOut(Schema):
+    id: str
+    label: str
+    start_local: str
+    doctor_id: str
+    doctor_name: str
+    specialty: str | None = None
+
+    @classmethod
+    def from_option(cls, o: dict[str, Any]) -> AgentOptionOut:
+        return cls(
+            id=o["id"],
+            label=o["label"],
+            start_local=o["start_local"],
+            doctor_id=o["doctor_id"],
+            doctor_name=o["doctor_name"],
+            specialty=o.get("specialty"),
+        )
+
+
+class ReadbackOut(Schema):
+    text: str
+    needs_approval: bool
+    reasons: list[str]
+
+
 class ChatMessageIn(Schema):
     text: ChatText
 
@@ -51,6 +77,9 @@ class ChatTurnOut(Schema):
     suggested_action: SuggestedActionOut | None
     session_status: ChatSessionStatus
     message_id: str | None
+    options: list[AgentOptionOut] = Field(default_factory=list)
+    readback: ReadbackOut | None = None
+    agent_step: str | None = None
 
 
 class ChatMessageOut(Schema):
@@ -63,6 +92,7 @@ class ChatMessageOut(Schema):
     citations: list[CitationOut]
     disclaimers: list[str] = Field(default_factory=list)
     safety: dict[str, Any]
+    agent: dict[str, Any] | None = None
     created_at: datetime
 
 

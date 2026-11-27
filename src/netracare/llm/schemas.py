@@ -79,12 +79,36 @@ class RouterOutput(_Strict):
     concern_phrase: str | None = Field(max_length=80)
 
 
+BookingActionLit = Literal["book", "reschedule", "cancel", "list", "none"]
+ReplyKind = Literal["answer", "yes", "no", "change", "stop", "other"]
+ApptTypeLit = Literal["routine", "follow_up", "new_patient", "surgery_consult"]
+
+
+class BookingTurn(_Strict):
+    """What one patient message says about a booking. Phrases are copied as written: dates
+    and times are resolved by code (domain.relative_dates), never by the model."""
+
+    action: BookingActionLit
+    doctor_mention: str | None = Field(max_length=80)
+    specialty_hint: SpecialtyCode | None
+    concern_phrase: str | None = Field(max_length=80)
+    date_phrase: str | None = Field(max_length=80)
+    time_phrase: str | None = Field(max_length=80)
+    patient_mention: str | None = Field(max_length=80)
+    appointment_ref: str | None = Field(max_length=120)
+    option_choice: int | None = Field(ge=1, le=9)
+    appt_type: ApptTypeLit | None
+    reply_kind: ReplyKind
+    confidence: float = Field(ge=0, le=1)
+
+
 SCHEMAS: dict[str, type[BaseModel]] = {
     "TriageLLMOutput": TriageLLMOutput,
     "EyeFactOutput": EyeFactOutput,
     "VisitSummaryDraft": VisitSummaryDraft,
     "ChatAnswerOutput": ChatAnswerOutput,
     "RouterOutput": RouterOutput,
+    "BookingTurn": BookingTurn,
 }
 
 # Keywords strict mode (Groq / OpenAI structured outputs) does not accept.

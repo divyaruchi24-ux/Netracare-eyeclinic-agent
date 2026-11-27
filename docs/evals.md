@@ -2,7 +2,7 @@
 
 NetraCare treats evaluation like testing: datasets and baselines are committed, every push is scored in CI, and a regression fails the build. Opik Cloud holds the experiment history and the request traces.
 
-## What exists today (Phases 1–3)
+## What exists today (Phases 1–4)
 
 | Suite | Dataset (cases) | Mode | What it checks |
 |---|---|---|---|
@@ -16,6 +16,9 @@ NetraCare treats evaluation like testing: datasets and baselines are committed, 
 | `router_rules` | `router_rules_v0` (51) | offline, **CI gate** | Chat router layer 1 (no LLM): hidden emergencies inside FAQ/booking messages, medical-advice and lab-report requests, human requests, empty/emoji/spam, and *no* false positives on ordinary questions (expected `defer`). Gate: emergency recall 1.0, exact intent 1.0. |
 | `router_llm` | `router_llm_v0` (65) | **live** | The router as deployed (layer 1, then `intent_router@v1`): intent accuracy (target ≥ 0.85), emergency and medical-question recall, follow-up rewriting (`standalone_rewrite`); confusion matrix in the report's `extra`. |
 | `rag_answer_live` | `rag_answer_live_v0` (26) | **live** (+ models) | A full chat turn (`ChatService`) on Groq: `no_advice` (must be 1.0), `numbers_grounded` (every number appears in a cited chunk), `citation_valid`, `answered_with_source`, `refused_when_expected` (out-of-KB and prompt injection), `expected_text` (current prices present, superseded ones absent). |
+| `relative_dates` | `relative_dates_v0` (58) | offline, **CI gate** | Date and time phrases resolved by code (today, next Tuesday, this weekend, 12/12 day-first, after 4, around 10, out-of-hours), anchored on a Tuesday, Saturday, Sunday, month end and year end. `exact_range` must be 1.0. DST correctness of the UTC conversion is unit-tested in `Europe/London`. |
+| `booking_agent_offline` | `booking_agent_v0` (33) | offline, **CI gate** | Multi-turn booking-agent conversations over a fresh copy of the seeded DB with a frozen clock, with keyword understanding (no LLM), so the graph, tools, policy and write safety are tested deterministically. Events cover a slot stolen after the read-back, injected tool failures, front-desk approve/edit/reject, a safety pause, and time passing. `no_write_without_yes` **must be 1.0**; `task_success` (final step + exact successful writes + final reply kind) and `tool_call_correctness` (expected tools in order). |
+| `booking_agent_live` | `booking_agent_v0` (33) | **live** | The same conversations with `booking_nlu@v1` on Groq. Target task success ≥ 0.85; write safety must stay 1.0. |
 
 Retrieval suites need the fastembed models (`.\scripts\dev.ps1 models` downloads them once into `MODELS_CACHE_DIR`; CI caches the folder). Retrieval tuning (k, rerank, threshold) is done with `python -m uv run python scripts/rag_sweep.py`, which writes `reports/evals/rag_sweep-<ts>.{json,md}`; the chosen values and numbers are in [phase-3/understanding.md](phase-3/understanding.md).
 
@@ -64,8 +67,9 @@ Two experiments with the same fingerprint and dataset version differ **only in c
   - `approval.approve`, `approval.reject`
   - `availability.find`
   - `triage.classify`, `visit_summary.draft`
+  - `agent.turn` (reply kind, step, tool names in order, whether it wrote) and `agent.execute`
   - `chat.turn` (intent, mode, cited chunk ids, safety level, handoff, flags, cost) with `rag.retrieve` (BM25/vector/fused ids, ranks, scores, confidence: never chunk text or the question) and the LLM spans below as children
-  - every LLM call as a child span of `type="llm"` (`llm.triage`, `llm.eye_fact`, `llm.visit_summary`, `llm.chat_router`, `llm.chat_answer`) carrying model, provider, token usage, `total_cost` and `prompt_id@version`. Its input is a summary (character count, schema name); prompt and completion text are never sent.
+  - every LLM call as a child span of `type="llm"` (`llm.triage`, `llm.eye_fact`, `llm.visit_summary`, `llm.chat_router`, `llm.chat_answer`, `llm.booking_nlu`) carrying model, provider, token usage, `total_cost` and `prompt_id@version`. Its input is a summary (character count, schema name); prompt and completion text are never sent.
 - A span holds only IDs, roles, statuses, counts and error codes. Names, phones, emails, dates of birth, free-text reasons and tokens are dropped, and any remaining strings pass through `redact()`.
 - Every span records the HTTP `request_id`. It matches the `X-Request-ID` response header and the audit log, so one ID follows a request across the API, the audit trail and Opik.
 - If Opik fails, the error is logged and the operation goes ahead.
@@ -85,5 +89,4 @@ Two experiments with the same fingerprint and dataset version differ **only in c
 
 ## Coming next
 
-- **Phase 4:** booking-agent conversations (multi-turn, tool-call correctness).
 - **Phase 5:** LLM-as-judge metrics, using the `JUDGE_*` settings behind the same `Metric` protocol; golden datasets at full size; judge-versus-human agreement checks; and Opik experiment comparisons in CI.

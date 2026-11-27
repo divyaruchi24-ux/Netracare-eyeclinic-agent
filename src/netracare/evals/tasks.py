@@ -23,12 +23,15 @@ from typing import Any
 
 from netracare.domain.enums import AppointmentType, RedFlagLevel
 from netracare.domain.policies import BookingContext, requires_approval, should_flag_for_no_shows
+from netracare.evals.booking_tasks import booking_agent_live_task, booking_agent_offline_task
+from netracare.evals.date_tasks import relative_dates_task
 from netracare.evals.metrics import (
     MRR,
     AnsweredWithExpectedSource,
     CitationValid,
     CodeHit,
     ExactMatch,
+    ExactRange,
     ExpectedText,
     InKbAnswerable,
     LabelRecall,
@@ -36,12 +39,15 @@ from netracare.evals.metrics import (
     NoAdvice,
     NoneFlagged,
     NoSupersededLeak,
+    NoWriteWithoutYes,
     NumbersGrounded,
     OutOfKbRefusal,
     RecallAtK,
     RefusedWhenExpected,
     SetEquality,
     StandaloneContains,
+    TaskSuccess,
+    ToolCallCorrectness,
     UnderTriage,
 )
 from netracare.evals.rag_tasks import rag_answer_live_task, rag_retrieval_task
@@ -283,6 +289,26 @@ SUITES: dict[str, EvalSuite] = {
         requires_live=True,
         requires_models=True,
         prompts=("intent_router", "chat_answer", "red_flag_classifier", "json_repair"),
+    ),
+    "relative_dates": EvalSuite(
+        dataset="relative_dates_v0",
+        task=relative_dates_task,
+        metrics=[ExactRange()],
+        description="Relative dates and times resolved in code (next Tuesday, 12/12, after 4)",
+    ),
+    "booking_agent_offline": EvalSuite(
+        dataset="booking_agent_v0",
+        task=booking_agent_offline_task,
+        metrics=[NoWriteWithoutYes(), TaskSuccess(), ToolCallCorrectness()],
+        description="Booking-agent conversations (keyword NLU); gate: no write without a yes",
+    ),
+    "booking_agent_live": EvalSuite(
+        dataset="booking_agent_v0",
+        task=booking_agent_live_task,
+        metrics=[NoWriteWithoutYes(), TaskSuccess(), ToolCallCorrectness()],
+        description="The same conversations with booking_nlu@v1 on Groq",
+        requires_live=True,
+        prompts=("booking_nlu", "json_repair"),
     ),
     "router_rules": EvalSuite(
         dataset="router_rules_v0",

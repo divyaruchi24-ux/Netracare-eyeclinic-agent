@@ -327,6 +327,12 @@ class ApprovalRequest(IdMixin, TimestampMixin, Base):
     decided_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     decision_note: Mapped[str | None] = mapped_column(Text)
     request_note: Mapped[str | None] = mapped_column(Text)
+    # Phase 4: requests raised by the chat booking agent link back to the conversation.
+    source: Mapped[str] = mapped_column(
+        String(16), default="ui", server_default="ui", nullable=False
+    )
+    chat_session_id: Mapped[str | None] = mapped_column(ForeignKey("chat_sessions.id"))
+    notified_overdue_at: Mapped[datetime | None] = mapped_column(UTCDateTime())
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
 
     __mapper_args__ = {"version_id_col": version}  # noqa: RUF012
@@ -539,6 +545,7 @@ class ChatMessage(IdMixin, Base):
     citations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
     safety: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     llm_call_ids: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    agent: Mapped[dict[str, Any] | None] = mapped_column(JSON)  # booking options / read-back
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
 
     __table_args__ = (UniqueConstraint("session_id", "seq"),)

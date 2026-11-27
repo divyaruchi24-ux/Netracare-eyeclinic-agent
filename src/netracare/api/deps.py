@@ -121,3 +121,11 @@ def get_retrieval_index(request: Request) -> RetrievalIndex:
 
 
 IndexDep = Annotated[RetrievalIndex, Depends(get_retrieval_index)]
+
+
+def get_booking_agent(request: Request) -> Any:
+    """The app's BookingAgent (Phase 4), or None."""
+    return getattr(request.app.state, "booking_agent", None)
+
+
+AgentDep = Annotated[Any, Depends(get_booking_agent)]

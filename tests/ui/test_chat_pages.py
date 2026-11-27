@@ -53,15 +53,15 @@ def test_emergency_reply_is_a_red_box(ui: UI) -> None:
 def test_booking_suggestion_prefills_the_booking_page(
     ui: UI, use_llm: Callable[..., FakeProvider]
 ) -> None:
-    script = ChatScript()
-    script.router.append(route_json("booking", "book a child's check-up"))
-    use_llm(script)
-    at = _send(_open_chat(ui(patient_email("P010"))), "My 6 year old needs a routine eye check-up")
-    button = next(b for b in at.button if b.label == "Book with Dr. Arjun Menon")
+    """Signed-in booking requests go to the booking agent (Phase 4); the pre-filled booking
+    page button remains on medical-question refusals ("our Cornea specialist ...")."""
+    use_llm(ChatScript())
+    at = _send(_open_chat(ui(patient_email("P010"))), "Which eye drops should I use for dry eyes?")
+    button = next(b for b in at.button if b.label == "Book with Dr. Ananya Rao")
     button.click().run()
     assert not at.exception, at.exception
-    assert at.session_state["patient_book_spec"] == "PEDIATRIC"
-    assert at.session_state["patient_book_doctor"]["full_name"] == "Dr. Arjun Menon"
+    assert at.session_state["patient_book_spec"] == "CORNEA"
+    assert at.session_state["patient_book_doctor"]["full_name"] == "Dr. Ananya Rao"
     assert PREFILL_KEY not in at.session_state
 
 
